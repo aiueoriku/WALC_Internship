@@ -5,13 +5,13 @@ import pandas as pd
 import seaborn as sns
 from sklearn.datasets import load_iris
 from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
-from sklearn.linear_model import LogisticRegression
+from sklearn.linear_model import LogisticRegression. LinearRegression
 from sklearn.model_selection import KFold
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.neural_network import MLPClassifier
 from sklearn.svm import SVC, LinearSVC
 from sklearn.tree import DecisionTreeClassifier
-
+from sklearn.linear_model import LinearRegression
 
 class AnalyzeIris:
     """Irisデータセットを分析するクラス """
@@ -67,22 +67,31 @@ class AnalyzeIris:
         self.data["label"][self.data["label"]==2] = "virginica"
         return sns.pairplot(self.data, hue="label", diag_kind=diag_kind)
     
-    def all_supervised(self, n_neighbors: int = 4) -> float:
+    def all_supervised(self, n_neighbors: int = 4) -> None:
+        """複数の教師あり学習モデルを評価する
+
+        Args:
+            n_neighbors (int): Number of neighbors to use for KNeighborsClassifier. Default is 4.
+
+        Returns:
+            None
+        """
         iris = load_iris()
         X = iris.data
         y = iris.target
         
-        kf = KFold(n_splits=5, shuffle=True, random_state=42)
+        kf = KFold(n_splits=5, shuffle=True, random_state=0)
         
         models = [
-            ("LogisticRegression", LogisticRegression(max_iter=200)),
-            ("LinearSVC", LinearSVC(max_iter=2000)),
+            ("LogisticRegression", LogisticRegression()),
+            ("LinearSVC", LinearSVC()),
             ("SVC", SVC()),
             ("DecisionTreeClassifier", DecisionTreeClassifier()),
             ("KNeighborsClassifier", KNeighborsClassifier(n_neighbors=n_neighbors)),
+            ("LinearRegression", LinearRegression()),
             ("RandomForestClassifier", RandomForestClassifier()),
             ("GradientBoostingClassifier", GradientBoostingClassifier()),
-            ("MLPClassifier", MLPClassifier(max_iter=2000))
+            ("MLPClassifier", MLPClassifier())
         ]
         
         for name, model in models:
