@@ -16,6 +16,17 @@ except AttributeError as e:
 
 # __init__メソッドはattributeを自動で追加する
 class Prism:
+    """_summary_
+    
+    Attributes:
+        width (int): 幅
+        height (int): 高さ
+        depth (int): 奥行き
+    
+    Returns:
+        int: 体積
+    
+    """
     def __init__(self, width, height, depth):
         self.width = width
         self.height = height

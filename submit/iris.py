@@ -5,26 +5,42 @@ import pandas as pd
 import seaborn as sns
 from sklearn.datasets import load_iris
 from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
-from sklearn.linear_model import LogisticRegression. LinearRegression
+from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.model_selection import KFold
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.neural_network import MLPClassifier
 from sklearn.svm import SVC, LinearSVC
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.linear_model import LinearRegression
+
 
 class AnalyzeIris:
     """Irisデータセットを分析するクラス """
 
-    def __init__(self):
+    # random_state=0 は再現性を担保するために設定
+    models = [
+            ("LogisticRegression", LogisticRegression(random_state=0)),
+            ("LinearSVC", LinearSVC(random_state=0)),
+            ("SVC", SVC(random_state=0)),
+            ("DecisionTreeClassifier", DecisionTreeClassifier(random_state=0)),
+            ("KNeighborsClassifier", KNeighborsClassifier(n_neighbors=4)),
+            ("LinearRegression", LinearRegression()),
+            ("RandomForestClassifier", RandomForestClassifier(random_state=0)),
+            ("GradientBoostingClassifier", GradientBoostingClassifier(random_state=0)),
+            ("MLPClassifier", MLPClassifier(random_state=0))
+        ] # class variable
+
+
+    def __init__(self): # self: インスタンス自身を指す
         """AnalyzeIrisクラスのコンストラクタ
 
         Attributes:
             data (pd.DataFrame): Irisデータセットのデータフレーム
+            scores (dict): モデルのスコアを格納する辞書
 
         """
-        self.data = None
-
+        self.data = pd.DataFrame()
+        self.scores = {} # 各メソッドで共通の結果を格納
+        
     def get(self):
         """Irisデータセットをロードしてデータフレームに変換
 
@@ -52,13 +68,10 @@ class AnalyzeIris:
         """ペアプロットを作成して表示
 
         Args:
-            diag_kind (str): 対角線に表示するプロットの種類 デフォルトは'hist'
+            diag_kind (str): 対角成分のグラフの種類. Default is "hist".
 
         Returns:
             sns.PairGrid: 作成されたペアプロット
-
-        Raises:
-            ValueError: データがロードされていない場合に発生
         """
         if self.data is None:
             self.get()
@@ -66,7 +79,7 @@ class AnalyzeIris:
         self.data["label"][self.data["label"]==1] = "versicolor"
         self.data["label"][self.data["label"]==2] = "virginica"
         return sns.pairplot(self.data, hue="label", diag_kind=diag_kind)
-    
+
     def all_supervised(self, n_neighbors: int = 4) -> None:
         """複数の教師あり学習モデルを評価する
 
@@ -82,20 +95,10 @@ class AnalyzeIris:
         
         kf = KFold(n_splits=5, shuffle=True, random_state=0)
         
-        models = [
-            ("LogisticRegression", LogisticRegression()),
-            ("LinearSVC", LinearSVC()),
-            ("SVC", SVC()),
-            ("DecisionTreeClassifier", DecisionTreeClassifier()),
-            ("KNeighborsClassifier", KNeighborsClassifier(n_neighbors=n_neighbors)),
-            ("LinearRegression", LinearRegression()),
-            ("RandomForestClassifier", RandomForestClassifier()),
-            ("GradientBoostingClassifier", GradientBoostingClassifier()),
-            ("MLPClassifier", MLPClassifier())
-        ]
-        
-        for name, model in models:
-            print(f"=== {name} ===")
+        for model_name, model in self.models:
+            print(f"=== {model_name} ===")
+            
+            self.scores[model_name] = []
             
             for train_index, test_index in kf.split(X):
                 X_train, X_test = X[train_index], X[test_index]
@@ -106,4 +109,31 @@ class AnalyzeIris:
                 train_score = model.score(X_train, y_train)
                 test_score = model.score(X_test, y_test)
                 
+                self.scores[model_name].append(test_score)
+                
                 print(f"test score: {test_score:.3f}, train score: {train_score:.3f}")
+
+    def get_supervised(self):
+        """教師あり学習モデルの評価を行いpandas.DataFrameで返す
+
+        Returns:
+            pd.DataFrame: 教師あり学習モデルの評価結果
+        """
+        if not self.scores:
+            self.all_supervised()
+        
+        df_results = pd.DataFrame(self.scores)
+        return df_results
+    
+    def best_supervised(self):
+        """教師あり学習モデルの中で最も性能が良いモデルを返す
+
+        Returns:
+            str: 最も性能が良いモデルの名前
+            float: 最も性能が良いモデルの平均スコア
+        """
+        df_results = self.get_supervised()
+        mean = df_results.mean() # 各列の平均値を計算
+        best_method = mean.idxmax() # 最大値を持つ列の名前を取得
+        best_score = mean.max() # 最大値を取得
+        return best_method, best_score 
