@@ -13,7 +13,7 @@ try:
     print(j.value)
 except AttributeError as e:
     print(e)
-    
+
 # __init__メソッドはattributeを自動で追加する
 class Prism:
     def __init__(self, width, height, depth):

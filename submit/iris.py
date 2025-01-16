@@ -1,8 +1,16 @@
 """Irisデータセットを分析するモジュール"""
 
+import numpy as np
 import pandas as pd
 import seaborn as sns
 from sklearn.datasets import load_iris
+from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import KFold
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.neural_network import MLPClassifier
+from sklearn.svm import SVC, LinearSVC
+from sklearn.tree import DecisionTreeClassifier
 
 
 class AnalyzeIris:
@@ -58,3 +66,35 @@ class AnalyzeIris:
         self.data["label"][self.data["label"]==1] = "versicolor"
         self.data["label"][self.data["label"]==2] = "virginica"
         return sns.pairplot(self.data, hue="label", diag_kind=diag_kind)
+    
+    def all_supervised(self, n_neighbors: int = 4) -> float:
+        iris = load_iris()
+        X = iris.data
+        y = iris.target
+        
+        kf = KFold(n_splits=5, shuffle=True, random_state=42)
+        
+        models = [
+            ("LogisticRegression", LogisticRegression(max_iter=200)),
+            ("LinearSVC", LinearSVC(max_iter=2000)),
+            ("SVC", SVC()),
+            ("DecisionTreeClassifier", DecisionTreeClassifier()),
+            ("KNeighborsClassifier", KNeighborsClassifier(n_neighbors=n_neighbors)),
+            ("RandomForestClassifier", RandomForestClassifier()),
+            ("GradientBoostingClassifier", GradientBoostingClassifier()),
+            ("MLPClassifier", MLPClassifier(max_iter=2000))
+        ]
+        
+        for name, model in models:
+            print(f"=== {name} ===")
+            
+            for train_index, test_index in kf.split(X):
+                X_train, X_test = X[train_index], X[test_index]
+                y_train, y_test = y[train_index], y[test_index]
+                
+                model.fit(X_train, y_train)
+                
+                train_score = model.score(X_train, y_train)
+                test_score = model.score(X_test, y_test)
+                
+                print(f"test score: {test_score:.3f}, train score: {train_score:.3f}")
