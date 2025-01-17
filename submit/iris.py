@@ -40,7 +40,7 @@ class AnalyzeIris:
         """
         self.data = pd.DataFrame()
         self.scores = {} # 各メソッドで共通の結果を格納
-        
+
     def get(self):
         """Irisデータセットをロードしてデータフレームに変換
 
@@ -92,25 +92,25 @@ class AnalyzeIris:
         iris = load_iris()
         X = iris.data
         y = iris.target
-        
+
         kf = KFold(n_splits=5, shuffle=True, random_state=0)
-        
+
         for model_name, model in self.models:
             print(f"=== {model_name} ===")
-            
+
             self.scores[model_name] = []
-            
+
             for train_index, test_index in kf.split(X):
                 X_train, X_test = X[train_index], X[test_index]
                 y_train, y_test = y[train_index], y[test_index]
-                
+
                 model.fit(X_train, y_train)
-                
+
                 train_score = model.score(X_train, y_train)
                 test_score = model.score(X_test, y_test)
-                
+
                 self.scores[model_name].append(test_score)
-                
+
                 print(f"test score: {test_score:.3f}, train score: {train_score:.3f}")
 
     def get_supervised(self):
@@ -121,10 +121,10 @@ class AnalyzeIris:
         """
         if not self.scores:
             self.all_supervised()
-        
+
         df_results = pd.DataFrame(self.scores)
         return df_results
-    
+
     def best_supervised(self):
         """教師あり学習モデルの中で最も性能が良いモデルを返す
 
