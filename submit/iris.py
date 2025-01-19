@@ -1,5 +1,7 @@
 """Irisデータセットを分析するモジュール"""
 
+import graphviz
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -10,7 +12,7 @@ from sklearn.model_selection import KFold
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.neural_network import MLPClassifier
 from sklearn.svm import SVC, LinearSVC
-from sklearn.tree import DecisionTreeClassifier
+from sklearn.tree import DecisionTreeClassifier, export_graphviz
 
 
 class AnalyzeIris:
@@ -21,7 +23,7 @@ class AnalyzeIris:
             ("LogisticRegression", LogisticRegression(random_state=0)),
             ("LinearSVC", LinearSVC(random_state=0)),
             ("SVC", SVC(random_state=0)),
-            ("DecisionTreeClassifier", DecisionTreeClassifier(random_state=0)),
+            ("DecisionTreeClassifier", DecisionTreeClassifier(random_state=0, max_depth=4)),
             ("KNeighborsClassifier", KNeighborsClassifier(n_neighbors=4)),
             ("LinearRegression", LinearRegression()),
             ("RandomForestClassifier", RandomForestClassifier(random_state=0)),
@@ -40,6 +42,7 @@ class AnalyzeIris:
         """
         self.data = pd.DataFrame()
         self.scores = {} # 各メソッドで共通の結果を格納
+        self.trained_models = {} # 学習済みモデルを格納
 
     def get(self):
         """Irisデータセットをロードしてデータフレームに変換
@@ -78,7 +81,7 @@ class AnalyzeIris:
         self.data["label"][self.data["label"]==0] = "setosa"
         self.data["label"][self.data["label"]==1] = "versicolor"
         self.data["label"][self.data["label"]==2] = "virginica"
-        return sns.pairplot(self.data, hue="label", diag_kind=diag_kind)
+        return sns.pairplot(self.data, hue="label", diag_kind=diag_kind)    
 
     def all_supervised(self, n_neighbors: int = 4) -> None:
         """複数の教師あり学習モデルを評価する
@@ -110,6 +113,7 @@ class AnalyzeIris:
                 test_score = model.score(X_test, y_test)
 
                 self.scores[model_name].append(test_score)
+                self.trained_models[model_name] = model
 
                 print(f"test score: {test_score:.3f}, train score: {train_score:.3f}")
 
@@ -136,4 +140,26 @@ class AnalyzeIris:
         mean = df_results.mean() # 各列の平均値を計算
         best_method = mean.idxmax() # 最大値を持つ列の名前を取得
         best_score = mean.max() # 最大値を取得
-        return best_method, best_score 
+        return best_method, best_score
+    
+    def plot_feature_importances_all(self):
+        """全てのモデルの特徴量の重要度をプロットする"""
+        for model_name, model in self.trained_models.items():
+            if hasattr(model, 'feature_importances_'):
+                n_features = len(self.data.columns) - 1
+                plt.barh(range(n_features), model.feature_importances_, align="center")
+                plt.yticks(np.arange(n_features), self.data.columns[:-1])
+                plt.xlabel(f"Feature importance: {model_name}")
+                plt.show()
+                print("\n")
+
+    def visualize_decision_tree(self):
+        # print("=== DecisionTreeClassifier ===")
+        """決定木の可視化"""
+        for model_name, model in self.trained_models.items():
+            if model_name == "DecisionTreeClassifier":
+                export_graphviz(model, out_file=f"{model_name}.dot", feature_names=self.data.columns[:-1], class_names=["setosa", "versicolor", "virginica"], filled=True, rounded=True)
+                with open(f"{model_name}.dot") as f:
+                    dot_graph = f.read()
+                graph = graphviz.Source(dot_graph)
+                return graph
