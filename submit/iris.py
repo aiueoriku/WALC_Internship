@@ -16,23 +16,23 @@ from sklearn.tree import DecisionTreeClassifier, export_graphviz
 
 
 class AnalyzeIris:
-    """Irisデータセットを分析するクラス """
+    """Irisデータセットを分析するクラス"""
 
     # random_state=0 は再現性を担保するために設定
+    # FIXME : random_stateを変えたい場合はどうしますか？この乱数では結果が悪かったので他の乱数を使いたい場合も出てくるかもしれません。
     models = [
-            ("LogisticRegression", LogisticRegression(random_state=0)),
-            ("LinearSVC", LinearSVC(random_state=0)),
-            ("SVC", SVC(random_state=0)),
-            ("DecisionTreeClassifier", DecisionTreeClassifier(random_state=0, max_depth=4)),
-            ("KNeighborsClassifier", KNeighborsClassifier(n_neighbors=4)),
-            ("LinearRegression", LinearRegression()),
-            ("RandomForestClassifier", RandomForestClassifier(random_state=0)),
-            ("GradientBoostingClassifier", GradientBoostingClassifier(random_state=0)),
-            ("MLPClassifier", MLPClassifier(random_state=0))
-        ] # class variable
+        ("LogisticRegression", LogisticRegression(random_state=0)),
+        ("LinearSVC", LinearSVC(random_state=0)),
+        ("SVC", SVC(random_state=0)),
+        ("DecisionTreeClassifier", DecisionTreeClassifier(random_state=0, max_depth=4)),
+        ("KNeighborsClassifier", KNeighborsClassifier(n_neighbors=4)),
+        ("LinearRegression", LinearRegression()),
+        ("RandomForestClassifier", RandomForestClassifier(random_state=0)),
+        ("GradientBoostingClassifier", GradientBoostingClassifier(random_state=0)),
+        ("MLPClassifier", MLPClassifier(random_state=0)),
+    ]  # class variable
 
-
-    def __init__(self): # self: インスタンス自身を指す
+    def __init__(self):  # self: インスタンス自身を指す
         """AnalyzeIrisクラスのコンストラクタ
 
         Attributes:
@@ -41,17 +41,21 @@ class AnalyzeIris:
 
         """
         self.data = pd.DataFrame()
-        self.scores = {} # 各メソッドで共通の結果を格納
-        self.trained_models = {} # 学習済みモデルを格納
+        self.scores = {}  # 各メソッドで共通の結果を格納
+        self.trained_models = {}  # 学習済みモデルを格納
 
     def get(self):
         """Irisデータセットをロードしてデータフレームに変換
 
         Returns:
             pd.DataFrame: Irisデータセットを含むデータフレーム
+
+        FIXME:
+        get関数を実行しないとアイリスデータセットはロードされませんが良い実装でしょうか？
+        get関数を実行しないと他の関数は全て動かないと思いますが
         """
         iris = load_iris()
-        self.data = pd.DataFrame(iris.data, columns=iris.feature_names) # 明日研究室で聞いてみよう
+        self.data = pd.DataFrame(iris.data, columns=iris.feature_names)  # 明日研究室で聞いてみよう
         self.data["label"] = iris.target
         return self.data
 
@@ -63,6 +67,7 @@ class AnalyzeIris:
 
         """
         if self.data is None:
+            # FIXME: 全ての関数でこれをやっているなら修正が必要ですね
             self.get()
         data_without_label = self.data.drop("label", axis=1)
         return data_without_label.corr()
@@ -78,10 +83,10 @@ class AnalyzeIris:
         """
         if self.data is None:
             self.get()
-        self.data["label"][self.data["label"]==0] = "setosa"
-        self.data["label"][self.data["label"]==1] = "versicolor"
-        self.data["label"][self.data["label"]==2] = "virginica"
-        return sns.pairplot(self.data, hue="label", diag_kind=diag_kind)    
+        self.data["label"][self.data["label"] == 0] = "setosa"
+        self.data["label"][self.data["label"] == 1] = "versicolor"
+        self.data["label"][self.data["label"] == 2] = "virginica"
+        return sns.pairplot(self.data, hue="label", diag_kind=diag_kind)
 
     def all_supervised(self, n_neighbors: int = 4) -> None:
         """複数の教師あり学習モデルを評価する
@@ -122,6 +127,12 @@ class AnalyzeIris:
 
         Returns:
             pd.DataFrame: 教師あり学習モデルの評価結果
+
+        TODO:
+        これは方向性の問題なので修正が必ずしも必要ではありません。
+        パラメータの変更などを行うことはないのですか？
+        分析クラスなので、パラメータの変更を行なって再度分析したくなると思うのですが
+        このget_supervisedの実装だと、パラメータを変更しても最初に実行した結果が上書きされないと思います。
         """
         if not self.scores:
             self.all_supervised()
@@ -137,15 +148,17 @@ class AnalyzeIris:
             float: 最も性能が良いモデルの平均スコア
         """
         df_results = self.get_supervised()
-        mean = df_results.mean() # 各列の平均値を計算
-        best_method = mean.idxmax() # 最大値を持つ列の名前を取得
-        best_score = mean.max() # 最大値を取得
+        mean = df_results.mean()  # 各列の平均値を計算
+        best_method = mean.idxmax()  # 最大値を持つ列の名前を取得
+        best_score = mean.max()  # 最大値を取得
         return best_method, best_score
-    
+
     def plot_feature_importances_all(self):
-        """全てのモデルの特徴量の重要度をプロットする"""
+        """全てのモデルの特徴量の重要度をプロットする
+        TODO: class.__name__()で一応クラス名とってこれます。
+        """
         for model_name, model in self.trained_models.items():
-            if hasattr(model, 'feature_importances_'):
+            if hasattr(model, "feature_importances_"):
                 n_features = len(self.data.columns) - 1
                 plt.barh(range(n_features), model.feature_importances_, align="center")
                 plt.yticks(np.arange(n_features), self.data.columns[:-1])
@@ -158,7 +171,14 @@ class AnalyzeIris:
         """決定木の可視化"""
         for model_name, model in self.trained_models.items():
             if model_name == "DecisionTreeClassifier":
-                export_graphviz(model, out_file=f"{model_name}.dot", feature_names=self.data.columns[:-1], class_names=["setosa", "versicolor", "virginica"], filled=True, rounded=True)
+                export_graphviz(
+                    model,
+                    out_file=f"{model_name}.dot",
+                    feature_names=self.data.columns[:-1],
+                    class_names=["setosa", "versicolor", "virginica"],
+                    filled=True,
+                    rounded=True,
+                )
                 with open(f"{model_name}.dot") as f:
                     dot_graph = f.read()
                 graph = graphviz.Source(dot_graph)
