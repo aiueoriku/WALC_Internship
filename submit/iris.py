@@ -20,29 +20,31 @@ class AnalyzeIris:
 
     # random_state=0 は再現性を担保するために設定
     # FIXME : random_stateを変えたい場合はどうしますか？この乱数では結果が悪かったので他の乱数を使いたい場合も出てくるかもしれません。
-    models = [
-        ("LogisticRegression", LogisticRegression(random_state=0)),
-        ("LinearSVC", LinearSVC(random_state=0)),
-        ("SVC", SVC(random_state=0)),
-        ("DecisionTreeClassifier", DecisionTreeClassifier(random_state=0, max_depth=4)),
-        ("KNeighborsClassifier", KNeighborsClassifier(n_neighbors=4)),
-        ("LinearRegression", LinearRegression()),
-        ("RandomForestClassifier", RandomForestClassifier(random_state=0)),
-        ("GradientBoostingClassifier", GradientBoostingClassifier(random_state=0)),
-        ("MLPClassifier", MLPClassifier(random_state=0)),
-    ]  # class variable
+    # FIXED : random_stateをコンストラクタの引数として設定しました
 
-    def __init__(self):  # self: インスタンス自身を指す
+    def __init__(self, random_state=0):  # self: インスタンス自身を指す
         """AnalyzeIrisクラスのコンストラクタ
 
         Attributes:
             data (pd.DataFrame): Irisデータセットのデータフレーム
             scores (dict): モデルのスコアを格納する辞書
+            random_state (int): 乱数のシード
 
         """
         self.data = pd.DataFrame()
         self.scores = {}  # 各メソッドで共通の結果を格納
         self.trained_models = {}  # 学習済みモデルを格納
+        self.models = [
+            ("LogisticRegression", LogisticRegression(random_state=random_state)),
+            ("LinearSVC", LinearSVC(random_state=random_state)),
+            ("SVC", SVC(random_state=random_state)),
+            ("DecisionTreeClassifier", DecisionTreeClassifier(random_state=random_state, max_depth=4)),
+            ("KNeighborsClassifier", KNeighborsClassifier(n_neighbors=4)),
+            ("LinearRegression", LinearRegression()),
+            ("RandomForestClassifier", RandomForestClassifier(random_state=random_state)),
+            ("GradientBoostingClassifier", GradientBoostingClassifier(random_state=random_state)),
+            ("MLPClassifier", MLPClassifier(random_state=random_state))
+        ]
 
     def get(self):
         """Irisデータセットをロードしてデータフレームに変換
