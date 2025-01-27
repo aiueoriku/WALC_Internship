@@ -31,7 +31,8 @@ class AnalyzeIris:
             random_state (int): 乱数のシード
 
         """
-        self.data = pd.DataFrame()
+        self.data = self._load_iris_data()  # データを初期化時にロード
+        self.data_with_label = None  # ラベル付きデータは初期化時にはNone
         self.scores = {}  # 各メソッドで共通の結果を格納
         self.trained_models = {}  # 学習済みモデルを格納
         self.models = [
@@ -46,19 +47,23 @@ class AnalyzeIris:
             ("MLPClassifier", MLPClassifier(random_state=random_state))
         ]
 
+    def _load_iris_data(self):
+        """Irisデータセットをロードして特徴量データフレームに変換"""
+        iris = load_iris()
+        data = pd.DataFrame(iris.data, columns=iris.feature_names)
+        return data
+
     def get(self):
-        """Irisデータセットをロードしてデータフレームに変換
+        """Irisデータセットをロードしてデータフレームを返す（ラベルを追加）
 
         Returns:
-            pd.DataFrame: Irisデータセットを含むデータフレーム
-
-        FIXME:
-        get関数を実行しないとアイリスデータセットはロードされませんが良い実装でしょうか？
-        get関数を実行しないと他の関数は全て動かないと思いますが
+            pd.DataFrame: ラベルを含む新しいデータフレーム
         """
-        iris = load_iris()
-        self.data = pd.DataFrame(iris.data, columns=iris.feature_names)  # 明日研究室で聞いてみよう
-        self.data["label"] = iris.target
+        if "label" not in self.data.columns:
+            # 新しいデータフレームにラベルを追加
+            self.data_with_label = self.data.copy()
+            self.data_with_label["label"] = load_iris().target
+            return self.data_with_label
         return self.data
 
     def get_correlation(self):
@@ -68,11 +73,12 @@ class AnalyzeIris:
             pd.DataFrame: データフレームの相関行列
 
         """
-        if self.data is None:
-            # FIXME: 全ての関数でこれをやっているなら修正が必要ですね
-            self.get()
-        data_without_label = self.data.drop("label", axis=1)
-        return data_without_label.corr()
+        # if self.data is None:
+        #     # FIXME: 全ての関数でこれをやっているなら修正が必要ですね
+        #     self.get()
+        # data_without_label = self.data.drop("label", axis=1)
+        # return data_without_label.corr()
+        return self.data.corr()
 
     def pair_plot(self, diag_kind: str = "hist") -> sns.PairGrid:
         """ペアプロットを作成して表示
@@ -83,14 +89,14 @@ class AnalyzeIris:
         Returns:
             sns.PairGrid: 作成されたペアプロット
         """
-        if self.data is None:
-            self.get()
-        self.data["label"][self.data["label"] == 0] = "setosa"
-        self.data["label"][self.data["label"] == 1] = "versicolor"
-        self.data["label"][self.data["label"] == 2] = "virginica"
-        return sns.pairplot(self.data, hue="label", diag_kind=diag_kind)
+        # if self.data is None:
+        #     self.get()
+        self.data_with_label["label"][self.data_with_label["label"] == 0] = "setosa"
+        self.data_with_label["label"][self.data_with_label["label"] == 1] = "versicolor"
+        self.data_with_label["label"][self.data_with_label["label"] == 2] = "virginica"
+        return sns.pairplot(self.data_with_label, hue="label", diag_kind=diag_kind)
 
-    def all_supervised(self, n_neighbors: int = 4) -> None:
+    def all_supervised(self, n_neighbors: int=4, model_params: dict = None, n_splits: int = 5, shuffle: bool = True, random_state: int = 0) -> None:
         """複数の教師あり学習モデルを評価する
 
         Args:
@@ -103,8 +109,12 @@ class AnalyzeIris:
         X = iris.data
         y = iris.target
 
-        kf = KFold(n_splits=5, shuffle=True, random_state=0)
-
+        kf = KFold(n_splits=n_splits, shuffle=shuffle, random_state=random_state)
+        
+        # スコアとモデルをリセット
+        self.scores = {}
+        self.trained_models = {}
+        
         for model_name, model in self.models:
             print(f"=== {model_name} ===")
 
@@ -124,7 +134,7 @@ class AnalyzeIris:
 
                 print(f"test score: {test_score:.3f}, train score: {train_score:.3f}")
 
-    def get_supervised(self):
+    def get_supervised(self, model_params: dict = None, n_splits: int = 5, shuffle: bool = True, random_state: int = 0):
         """教師あり学習モデルの評価を行いpandas.DataFrameで返す
 
         Returns:
@@ -135,8 +145,11 @@ class AnalyzeIris:
         パラメータの変更などを行うことはないのですか？
         分析クラスなので、パラメータの変更を行なって再度分析したくなると思うのですが
         このget_supervisedの実装だと、パラメータを変更しても最初に実行した結果が上書きされないと思います。
+        
+        FIXED:
+        パラメータを引数として受け取るように変更しました。
         """
-        if not self.scores:
+        if not self.scores or model_params:
             self.all_supervised()
 
         df_results = pd.DataFrame(self.scores)
@@ -155,18 +168,38 @@ class AnalyzeIris:
         best_score = mean.max()  # 最大値を取得
         return best_method, best_score
 
+    # def plot_feature_importances_all(self):
+    #     """全てのモデルの特徴量の重要度をプロットする
+    #     TODO: class.__name__()で一応クラス名とってこれます。
+    #     """
+    #     for model_name, model in self.trained_models.items():
+    #         if hasattr(model, "feature_importances_"):
+    #             n_features = len(self.data.columns) - 1
+    #             plt.barh(range(n_features), model.feature_importances_, align="center")
+    #             plt.yticks(np.arange(n_features), self.data.columns[:-1])
+    #             plt.xlabel(f"Feature importance: {model_name}")
+    #             plt.show()
+    #             print("\n")
+
     def plot_feature_importances_all(self):
         """全てのモデルの特徴量の重要度をプロットする
         TODO: class.__name__()で一応クラス名とってこれます。
+        FIXED: class.__name__()でクラス名を取得するように変更しました。
         """
-        for model_name, model in self.trained_models.items():
+        for _, model in self.trained_models.items():
             if hasattr(model, "feature_importances_"):
-                n_features = len(self.data.columns) - 1
+                # モデルが提供する feature_importances_ に基づいて特徴量数を取得
+                n_features = len(model.feature_importances_)
+                
+                # 特徴量名を調整
+                feature_names = self.data.columns[:n_features]
+                
+                # プロット
                 plt.barh(range(n_features), model.feature_importances_, align="center")
-                plt.yticks(np.arange(n_features), self.data.columns[:-1])
-                plt.xlabel(f"Feature importance: {model_name}")
+                plt.yticks(np.arange(n_features), feature_names)
+                plt.xlabel(f"Feature importance: {model.__class__.__name__}")
+                plt.title(f"Feature Importance of {model.__class__.__name__}")
                 plt.show()
-                print("\n")
 
     def visualize_decision_tree(self):
         # print("=== DecisionTreeClassifier ===")
