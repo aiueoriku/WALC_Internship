@@ -168,19 +168,6 @@ class AnalyzeIris:
         best_score = mean.max()  # 最大値を取得
         return best_method, best_score
 
-    # def plot_feature_importances_all(self):
-    #     """全てのモデルの特徴量の重要度をプロットする
-    #     TODO: class.__name__()で一応クラス名とってこれます。
-    #     """
-    #     for model_name, model in self.trained_models.items():
-    #         if hasattr(model, "feature_importances_"):
-    #             n_features = len(self.data.columns) - 1
-    #             plt.barh(range(n_features), model.feature_importances_, align="center")
-    #             plt.yticks(np.arange(n_features), self.data.columns[:-1])
-    #             plt.xlabel(f"Feature importance: {model_name}")
-    #             plt.show()
-    #             print("\n")
-
     def plot_feature_importances_all(self):
         """全てのモデルの特徴量の重要度をプロットする
         TODO: class.__name__()で一応クラス名とってこれます。
