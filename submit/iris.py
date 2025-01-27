@@ -11,6 +11,7 @@ from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.model_selection import KFold
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.neural_network import MLPClassifier
+from sklearn.preprocessing import MinMaxScaler, Normalizer, RobustScaler, StandardScaler
 from sklearn.svm import SVC, LinearSVC
 from sklearn.tree import DecisionTreeClassifier, export_graphviz
 
@@ -196,7 +197,7 @@ class AnalyzeIris:
                 export_graphviz(
                     model,
                     out_file=f"{model_name}.dot",
-                    feature_names=self.data.columns[:-1],
+                    feature_names=self.data_with_label.columns[:-1],
                     class_names=["setosa", "versicolor", "virginica"],
                     filled=True,
                     rounded=True,
@@ -207,8 +208,14 @@ class AnalyzeIris:
                 return graph
 
     def plot_scaled_data(self, n_splits: int = 5, random_state: int = 0):
-        """5-foldでそれぞれの要素に対するスケーリングと，LinearSVCの結果を出力する
+        """5-foldでそれぞれの要素に対するスケーリングとLinearSVCの結果を出力する
         """
+        
+        self.scalers = [MinMaxScaler(), 
+                        StandardScaler(), 
+                        RobustScaler(), 
+                        Normalizer()]
+        # self.scores_scaled = {}
         
         iris = load_iris()
         X = iris.data
@@ -216,4 +223,30 @@ class AnalyzeIris:
         
         kf = KFold(n_splits=n_splits, shuffle=True, random_state=random_state)
         
-    
+        for train_index, test_index in kf.split(X):
+            X_train, X_test = X[train_index], X[test_index]
+            y_train, y_test = y[train_index], y[test_index]
+            
+            # スケーラーを適用しない場合の結果を出力
+            model = LinearSVC(random_state=random_state)
+            model.fit(X_train, y_train)
+            
+            train_score = model.score(X_train, y_train)
+            test_score = model.score(X_test, y_test)
+            
+            print(f"Original: train_score: {train_score:.3f}   test_score: {test_score:.3f}")
+            
+            for scaler in self.scalers:
+                X_train_scaled = scaler.fit_transform(X_train)
+                X_test_scaled = scaler.transform(X_test)
+                
+                model = LinearSVC(random_state=random_state)
+                model.fit(X_train_scaled, y_train)
+                
+                train_score = model.score(X_train_scaled, y_train)
+                test_score = model.score(X_test_scaled, y_test)
+                
+                print(f"{scaler.__class__.__name__}: train_score: {train_score:.3f}   test_score: {test_score:.3f}")
+            print()
+            
+            # 明日visualizeから。書籍でscatter plotを使っているので、それを使ってみる
