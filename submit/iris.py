@@ -205,3 +205,15 @@ class AnalyzeIris:
                     dot_graph = f.read()
                 graph = graphviz.Source(dot_graph)
                 return graph
+
+    def plot_scaled_data(self, n_splits: int = 5, random_state: int = 0):
+        """5-foldでそれぞれの要素に対するスケーリングと，LinearSVCの結果を出力する
+        """
+        
+        iris = load_iris()
+        X = iris.data
+        y = iris.target
+        
+        kf = KFold(n_splits=n_splits, shuffle=True, random_state=random_state)
+        
+    
