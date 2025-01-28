@@ -14,6 +14,9 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.preprocessing import MinMaxScaler, Normalizer, RobustScaler, StandardScaler
 from sklearn.svm import SVC, LinearSVC
 from sklearn.tree import DecisionTreeClassifier, export_graphviz
+from sklearn.decomposition import PCA
+from sklearn.decomposition import NMF
+import mglearn
 
 
 class AnalyzeIris:
@@ -283,3 +286,50 @@ class AnalyzeIris:
             plt.close(fig)  # メモリの解放
 
             print("=" * 50)
+            
+    def plot_pca(self, n_components=2):
+        """今はPCA分析だけどお題はNMF分析らしい
+
+        Args:
+            n_components (int, optional): _description_. Defaults to 2.
+        """
+        iris = load_iris()
+        X = iris.data
+        y = iris.target
+        
+        # 事前にスケーリング（0-1範囲に正規化）
+        scaler = MinMaxScaler()
+        X_scaled = scaler.fit_transform(X)  # ここでスケーリング
+        
+        pca = PCA(n_components=n_components)
+        pca.fit(X)
+        X_pca = pca.transform(X)
+        print(f"Original shape: {X.shape}")
+        print(f"X_pca.shape: {X_pca.shape}")
+        
+        plt.figure(figsize=(8, 8))
+        mglearn.discrete_scatter(X_pca[:, 0], X_pca[:, 1], y)
+        plt.legend(iris.target_names, loc="best")
+        plt.gca().set_aspect("equal")
+        plt.xlabel("First component")
+        plt.ylabel("Second component")
+        
+        plt.matshow(pca.components_, cmap='viridis')
+        plt.yticks([0, 1], ["First component", "Second component"])
+        plt.colorbar()
+        plt.xticks(range(len(iris.feature_names)), iris.feature_names, rotation=60, ha='left')
+        plt.xlabel("Feature")
+        plt.ylabel("Principal components")
+        
+        nmf = NMF(n_components=n_components, random_state=0)
+        nmf.fit(X_scaled)
+        X_scaled_nmf = nmf.transform(X_scaled)
+
+        
+        plt.matshow(nmf.components_, cmap='viridis')
+        plt.yticks([0, 1], ["First component", "Second component"])
+        plt.colorbar()
+        plt.xticks(range(len(iris.feature_names)), iris.feature_names, rotation=60, ha='left')
+        plt.xlabel("Feature")
+        plt.ylabel("NMF components")
+        
