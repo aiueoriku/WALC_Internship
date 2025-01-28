@@ -32,12 +32,13 @@ class AnalyzeIris:
             random_state (int): 乱数のシード
 
         """
+        #FIXME: dataの中身がdfなので、それを明示した名前がいいと思います。df_dataとか
         self.data = self._load_iris_data()  # データを初期化時にロード
         self.data_with_label = None  # ラベル付きデータは初期化時にはNone
         self.scores = {}  # 各メソッドで共通の結果を格納
         self.trained_models = {}  # 学習済みモデルを格納
         self.models = [
-            ("LogisticRegression", LogisticRegression(random_state=random_state)),
+            ("LogisticRegression", LogisticRegression(random_state=random_state)),# FIXME: random_stateはselfで持っていた方がいいです。他でも使うかもしれません。
             ("LinearSVC", LinearSVC(random_state=random_state)),
             ("SVC", SVC(random_state=random_state)),
             ("DecisionTreeClassifier", DecisionTreeClassifier(random_state=random_state, max_depth=4)),
@@ -49,14 +50,18 @@ class AnalyzeIris:
         ]
 
     def _load_iris_data(self):
-        """Irisデータセットをロードして特徴量データフレームに変換"""
+        """
+        Irisデータセットをロードして特徴量データフレームに変換
+        
+        """
         iris = load_iris()
         data = pd.DataFrame(iris.data, columns=iris.feature_names)
         return data
 
+
     def get(self):
         """Irisデータセットをロードしてデータフレームを返す（ラベルを追加）
-
+        FIXME: 関数名とやっていることがあっていません。get関数でラベルを追加する挙動は使用する側が混乱します。
         Returns:
             pd.DataFrame: ラベルを含む新しいデータフレーム
         """
@@ -137,18 +142,15 @@ class AnalyzeIris:
 
     def get_supervised(self, model_params: dict = None, n_splits: int = 5, shuffle: bool = True, random_state: int = 0):
         """教師あり学習モデルの評価を行いpandas.DataFrameで返す
-
+        FIXME: 入力のmodel_paramsは使われていません。この関数の中で使う予定はありますか？また、各引数の説明を書きましょう。
         Returns:
             pd.DataFrame: 教師あり学習モデルの評価結果
 
-        TODO:
-        これは方向性の問題なので修正が必ずしも必要ではありません。
-        パラメータの変更などを行うことはないのですか？
-        分析クラスなので、パラメータの変更を行なって再度分析したくなると思うのですが
-        このget_supervisedの実装だと、パラメータを変更しても最初に実行した結果が上書きされないと思います。
+    
         
         FIXED:
         パラメータを引数として受け取るように変更しました。
+        FIXME: 引数にとったパラメータは使われていますか？この実装だとパラメータを変更しても、結果は変わらないと思います。
         """
         if not self.scores or model_params:
             self.all_supervised()
@@ -171,8 +173,6 @@ class AnalyzeIris:
 
     def plot_feature_importances_all(self):
         """全てのモデルの特徴量の重要度をプロットする
-        TODO: class.__name__()で一応クラス名とってこれます。
-        FIXED: class.__name__()でクラス名を取得するように変更しました。
         """
         for _, model in self.trained_models.items():
             if hasattr(model, "feature_importances_"):
@@ -216,7 +216,7 @@ class AnalyzeIris:
                         RobustScaler(), 
                         Normalizer()]
         # self.scores_scaled = {}
-        
+        # FIXME: 毎回irisデータをロードしているので、一度ロードしておいてそれを使うようにしましょう。コンストラクタでロードしたものは使わないのですか？
         iris = load_iris()
         X = iris.data
         y = iris.target
