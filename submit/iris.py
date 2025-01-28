@@ -1,6 +1,6 @@
 """Irisデータセットを分析するモジュール"""
 
-import graphviz
+# import graphviz
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -223,48 +223,63 @@ class AnalyzeIris:
         
         kf = KFold(n_splits=n_splits, shuffle=True, random_state=random_state)
         
+        feature_names = ["sepal length (cm)", "sepal width (cm)", "petal length (cm)", "petal width (cm)"]
+        plot_combinations = [
+            (0, 1),  # sepal length vs sepal width
+            (0, 2),  # sepal length vs petal length
+            (0, 3),  # sepal length vs petal width
+            (1, 2),  # sepal width vs petal length
+            (1, 3),  # sepal width vs petal width
+            (2, 3),  # petal length vs petal width
+        ]
+
         for train_index, test_index in kf.split(X):
             X_train, X_test = X[train_index], X[test_index]
             y_train, y_test = y[train_index], y[test_index]
-            
+
             # スケーラーを適用しない場合の結果を出力
-            model = LinearSVC(random_state=random_state)
+            model = LinearSVC(random_state=random_state, max_iter=10000)
             model.fit(X_train, y_train)
-            
+
             train_score = model.score(X_train, y_train)
             test_score = model.score(X_test, y_test)
-            print(f"Original: train_score: {train_score:.3f}   test_score: {test_score:.3f}")
-            
-            fig, ax = plt.subplots(1,5, figsize=(13, 4))
-            ax[0].scatter(X_train[:,0], X_train[:,1], c='blue', marker='o', label='Train')
-            ax[0].scatter(X_test[:,0], X_test[:,1], c='red', marker='^', label='Test')
-            ax[0].set_title("Original")
-            ax[0].set_xlabel("sepal length (cm)")
-            ax[0].set_ylabel("sepal width (cm)")
-            ax[0].legend()
-            
-            
-            
-            
-            # for scaler in self.scalers:
-            for i, scaler in enumerate(self.scalers):
+            print(f"Original: test score: {test_score:.3f}   train score: {train_score:.3f}")
+
+            # プロット用の設定
+            fig, ax = plt.subplots(6, 5, figsize=(13, 15))  # 6行5列のプロット
+            ax = ax.ravel()  # 1次元配列に変換
+
+            # オリジナルデータの散布図
+            for i, (x_idx, y_idx) in enumerate(plot_combinations):
+                ax[i * 5].scatter(X_train[:, x_idx], X_train[:, y_idx], c='blue', marker='o', label='Train')
+                ax[i * 5].scatter(X_test[:, x_idx], X_test[:, y_idx], c='red', marker='^', label='Test')
+                ax[i * 5].set_title(f"Original")
+                ax[i * 5].set_xlabel(feature_names[x_idx])
+                ax[i * 5].set_ylabel(feature_names[y_idx])
+                ax[i * 5].legend()
+
+            # 各スケーリング手法ごとのプロット
+            for j, scaler in enumerate(self.scalers):
                 X_train_scaled = scaler.fit_transform(X_train)
                 X_test_scaled = scaler.transform(X_test)
-                
-                model = LinearSVC(random_state=random_state)
+
+                model = LinearSVC(random_state=random_state, max_iter=10000)
                 model.fit(X_train_scaled, y_train)
-                
+
                 train_score = model.score(X_train_scaled, y_train)
                 test_score = model.score(X_test_scaled, y_test)
-                
-                print(f"{scaler.__class__.__name__}: train_score: {train_score:.3f}   test_score: {test_score:.3f}")
-                
-                ax[i+1].scatter(X_train_scaled[:,0], X_train_scaled[:,1], c='blue', marker='o', label='Train')
-                ax[i+1].scatter(X_test_scaled[:,0], X_test_scaled[:,1], c='red', marker='^', label='Test')
-                ax[i+1].set_title(scaler.__class__.__name__)
-                ax[i+1].legend()
 
-                
-            print("="*50)
-            
-            # 見た目がちょっと違うのと、printの順番が違うのは研究室で聞く
+                print(f"{scaler.__class__.__name__}: test score: {test_score:.3f}   train score: {train_score:.3f}")
+
+                # 各スケーリング手法での散布図
+                for i, (x_idx, y_idx) in enumerate(plot_combinations):
+                    ax[i * 5 + (j + 1)].scatter(X_train_scaled[:, x_idx], X_train_scaled[:, y_idx], c='blue', marker='o', label='Train')
+                    ax[i * 5 + (j + 1)].scatter(X_test_scaled[:, x_idx], X_test_scaled[:, y_idx], c='red', marker='^', label='Test')
+                    ax[i * 5 + (j + 1)].set_title(f"{scaler.__class__.__name__}")
+                    ax[i * 5 + (j + 1)].legend()
+
+            plt.tight_layout()
+            plt.show()  # ループごとにプロットを表示
+            plt.close(fig)  # メモリの解放
+
+            print("=" * 50)
