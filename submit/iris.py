@@ -302,13 +302,11 @@ class AnalyzeIris:
         X_scaled = scaler.fit_transform(X)  # ここでスケーリング
         
         pca = PCA(n_components=n_components)
-        pca.fit(X)
-        X_pca = pca.transform(X)
-        print(f"Original shape: {X.shape}")
-        print(f"X_pca.shape: {X_pca.shape}")
+        pca.fit(X_scaled)
+        X_scaled_pca = pca.transform(X_scaled)
         
         plt.figure(figsize=(8, 8))
-        mglearn.discrete_scatter(X_pca[:, 0], X_pca[:, 1], y)
+        mglearn.discrete_scatter(X_scaled_pca[:, 0], X_scaled_pca[:, 1], y)
         plt.legend(iris.target_names, loc="best")
         plt.gca().set_aspect("equal")
         plt.xlabel("First component")
@@ -321,15 +319,15 @@ class AnalyzeIris:
         plt.xlabel("Feature")
         plt.ylabel("Principal components")
         
-        nmf = NMF(n_components=n_components, random_state=0)
-        nmf.fit(X_scaled)
-        X_scaled_nmf = nmf.transform(X_scaled)
+        # nmf = NMF(n_components=n_components, random_state=0)
+        # nmf.fit(X_scaled)
+        # X_scaled_nmf = nmf.transform(X_scaled)
 
         
-        plt.matshow(nmf.components_, cmap='viridis')
-        plt.yticks([0, 1], ["First component", "Second component"])
-        plt.colorbar()
-        plt.xticks(range(len(iris.feature_names)), iris.feature_names, rotation=60, ha='left')
-        plt.xlabel("Feature")
-        plt.ylabel("NMF components")
+        # plt.matshow(nmf.components_, cmap='viridis')
+        # plt.yticks([0, 1], ["First component", "Second component"])
+        # plt.colorbar()
+        # plt.xticks(range(len(iris.feature_names)), iris.feature_names, rotation=60, ha='left')
+        # plt.xlabel("Feature")
+        # plt.ylabel("NMF components")
         
