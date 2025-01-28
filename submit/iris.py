@@ -233,10 +233,21 @@ class AnalyzeIris:
             
             train_score = model.score(X_train, y_train)
             test_score = model.score(X_test, y_test)
-            
             print(f"Original: train_score: {train_score:.3f}   test_score: {test_score:.3f}")
             
-            for scaler in self.scalers:
+            fig, ax = plt.subplots(1,5, figsize=(13, 4))
+            ax[0].scatter(X_train[:,0], X_train[:,1], c='blue', marker='o', label='Train')
+            ax[0].scatter(X_test[:,0], X_test[:,1], c='red', marker='^', label='Test')
+            ax[0].set_title("Original")
+            ax[0].set_xlabel("sepal length (cm)")
+            ax[0].set_ylabel("sepal width (cm)")
+            ax[0].legend()
+            
+            
+            
+            
+            # for scaler in self.scalers:
+            for i, scaler in enumerate(self.scalers):
                 X_train_scaled = scaler.fit_transform(X_train)
                 X_test_scaled = scaler.transform(X_test)
                 
@@ -247,6 +258,13 @@ class AnalyzeIris:
                 test_score = model.score(X_test_scaled, y_test)
                 
                 print(f"{scaler.__class__.__name__}: train_score: {train_score:.3f}   test_score: {test_score:.3f}")
-            print()
+                
+                ax[i+1].scatter(X_train_scaled[:,0], X_train_scaled[:,1], c='blue', marker='o', label='Train')
+                ax[i+1].scatter(X_test_scaled[:,0], X_test_scaled[:,1], c='red', marker='^', label='Test')
+                ax[i+1].set_title(scaler.__class__.__name__)
+                ax[i+1].legend()
+
+                
+            print("="*50)
             
-            # 明日visualizeから。書籍でscatter plotを使っているので、それを使ってみる
+            # 見た目がちょっと違うのと、printの順番が違うのは研究室で聞く
