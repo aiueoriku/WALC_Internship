@@ -109,7 +109,7 @@ class AnalyzeIris:
         self.data_df_with_label["label"][self.data_df_with_label["label"] == 2] = "virginica"
         return sns.pairplot(self.data_df_with_label, hue="label", diag_kind=diag_kind)
 
-    def all_supervised(self, n_neighbors: int=4, model_params: dict = None, n_splits: int = 5, shuffle: bool = True, random_state: int = 0) -> None:
+    def all_supervised(self, n_neighbors: int=4, n_splits: int = 5, shuffle: bool = True, random_state: int = 0) -> None:
         """複数の教師あり学習モデルを評価する
 
         Args:
@@ -151,16 +151,25 @@ class AnalyzeIris:
 
                 print(f"test score: {test_score:.3f}, train score: {train_score:.3f}")
 
-    def get_supervised(self, n_splits: int = 5, shuffle: bool = True, random_state: int = 0):
+    def get_supervised(self,n_splits: int = 5, shuffle: bool = True, random_state: int = 0):
         """教師あり学習モデルの評価を行いpandas.DataFrameで返す
         FIXME: 入力のmodel_paramsは使われていません。この関数の中で使う予定はありますか？また、各引数の説明を書きましょう。
+        FIXED: model_paramsを削除しました
+        
+        Args:
+            n_splits (int): Number of splits for KFold.
+            shuffle (bool): Whether to shuffle the data.
+            random_state (int): Random seed. Default is 0.
+        
         Returns:
             pd.DataFrame: 教師あり学習モデルの評価結果
+            
 
         FIXED:
         パラメータを引数として受け取るように変更しました。
         FIXME: 引数にとったパラメータは使われていますか？この実装だとパラメータを変更しても、結果は変わらないと思います。
         """
+        
         if not self.scores:
             self.all_supervised()
 
@@ -374,7 +383,8 @@ class AnalyzeIris:
 
             # スケーリング前のNMF
             nmf = NMF(n_components=n_components, init='random', random_state=0)
-            X_nmf = nmf.fit_transform(X)
+            nmf.fit(X)
+            X_nmf = nmf.transform(X)
             
             plt.figure(figsize=(8, 8))
             mglearn.discrete_scatter(X_nmf[:, 0], X_nmf[:, 1], y)
@@ -398,11 +408,9 @@ class AnalyzeIris:
             X_scaled = scaler.fit_transform(X)
             
             nmf_scaled = NMF(n_components=n_components, init='random', random_state=0)
-            X_scaled_nmf = nmf_scaled.fit_transform(X_scaled)
+            nmf_scaled.fit(X_scaled)
+            X_scaled_nmf = nmf_scaled.transform(X_scaled)
 
-            # X_scaledをDataFrameに変換
-            X_scaled_df = pd.DataFrame(X_scaled, columns=iris.feature_names)
-            print(X_scaled_df.head())  # X_scaledの先頭5行を表示
 
             plt.figure(figsize=(13, 8))
             mglearn.discrete_scatter(X_scaled_nmf[:, 0], X_scaled_nmf[:, 1], y)
@@ -420,6 +428,8 @@ class AnalyzeIris:
             plt.xlabel("Feature")
             plt.ylabel("NMF components")
             
+            
+            X_scaled_df = pd.DataFrame(X_scaled, columns=iris.feature_names)
             df_nmf = pd.DataFrame(nmf_scaled.components_, columns=iris.feature_names)
             
             return X_scaled_df, df_nmf, nmf_scaled
