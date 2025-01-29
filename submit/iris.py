@@ -1,11 +1,13 @@
 """Irisデータセットを分析するモジュール"""
 
-# import graphviz
+import graphviz
 import matplotlib.pyplot as plt
+import mglearn
 import numpy as np
 import pandas as pd
 import seaborn as sns
 from sklearn.datasets import load_iris
+from sklearn.decomposition import NMF, PCA
 from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
 from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.model_selection import KFold
@@ -14,9 +16,6 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.preprocessing import MinMaxScaler, Normalizer, RobustScaler, StandardScaler
 from sklearn.svm import SVC, LinearSVC
 from sklearn.tree import DecisionTreeClassifier, export_graphviz
-from sklearn.decomposition import PCA
-from sklearn.decomposition import NMF
-import mglearn
 
 
 class AnalyzeIris:
@@ -35,14 +34,18 @@ class AnalyzeIris:
             random_state (int): 乱数のシード
 
         """
-        #FIXME: dataの中身がdfなので、それを明示した名前がいいと思います。df_dataとか
-        self.data = self._load_iris_data()  # データを初期化時にロード
-        self.data_with_label = None  # ラベル付きデータは初期化時にはNone
+        # FIXME: dataの中身がdfなので、それを明示した名前がいいと思います。df_dataとか
+        # FIXED: data_dfに変更しました
+        
+        # self.data_df = self._load_iris_data()  # データを初期化時にロード
+        self.data_df = self._load_iris_data()  # データを初期化時にロード
+        self.data_df_with_label = None  # ラベル付きデータは初期化時にはNone
         self.scores = {}  # 各メソッドで共通の結果を格納
+        self.random_state = random_state # random_stateをインスタンス変数として保持
         self.trained_models = {}  # 学習済みモデルを格納
         self.models = [
-            ("LogisticRegression", LogisticRegression(random_state=random_state)),# FIXME: random_stateはselfで持っていた方がいいです。他でも使うかもしれません。
-            ("LinearSVC", LinearSVC(random_state=random_state)),
+            ("LogisticRegression", LogisticRegression(random_state=random_state)), # FIXME: random_stateはselfで持っていた方がいいです。他でも使うかもしれません。
+            ("LinearSVC", LinearSVC(random_state=random_state)), # FIXED: random_stateをselfで持つように変更しました
             ("SVC", SVC(random_state=random_state)),
             ("DecisionTreeClassifier", DecisionTreeClassifier(random_state=random_state, max_depth=4)),
             ("KNeighborsClassifier", KNeighborsClassifier(n_neighbors=4)),
@@ -51,16 +54,17 @@ class AnalyzeIris:
             ("GradientBoostingClassifier", GradientBoostingClassifier(random_state=random_state)),
             ("MLPClassifier", MLPClassifier(random_state=random_state))
         ]
+        
 
     def _load_iris_data(self):
-        """
-        Irisデータセットをロードして特徴量データフレームに変換
+        """Irisデータセットをロードして特徴量データフレームに変換
         
+        Returns:
+            pd.DataFrame: Irisデータセットの特徴量データフ
         """
         iris = load_iris()
-        data = pd.DataFrame(iris.data, columns=iris.feature_names)
-        return data
-
+        df_data = pd.DataFrame(iris.data, columns=iris.feature_names)
+        return df_data
 
     def get(self):
         """Irisデータセットをロードしてデータフレームを返す（ラベルを追加）
@@ -68,12 +72,12 @@ class AnalyzeIris:
         Returns:
             pd.DataFrame: ラベルを含む新しいデータフレーム
         """
-        if "label" not in self.data.columns:
+        if "label" not in self.data_df.columns:
             # 新しいデータフレームにラベルを追加
-            self.data_with_label = self.data.copy()
-            self.data_with_label["label"] = load_iris().target
-            return self.data_with_label
-        return self.data
+            self.data_df_with_label = self.data_df.copy()
+            self.data_df_with_label["label"] = load_iris().target
+            return self.data_df_with_label
+        return self.data_df
 
     def get_correlation(self):
         """データフレームの相関行列を計算
@@ -82,12 +86,12 @@ class AnalyzeIris:
             pd.DataFrame: データフレームの相関行列
 
         """
-        # if self.data is None:
+        # if self.data_df is None:
         #     # FIXME: 全ての関数でこれをやっているなら修正が必要ですね
         #     self.get()
-        # data_without_label = self.data.drop("label", axis=1)
+        # data_without_label = self.data_df.drop("label", axis=1)
         # return data_without_label.corr()
-        return self.data.corr()
+        return self.data_df.corr()
 
     def pair_plot(self, diag_kind: str = "hist") -> sns.PairGrid:
         """ペアプロットを作成して表示
@@ -98,22 +102,26 @@ class AnalyzeIris:
         Returns:
             sns.PairGrid: 作成されたペアプロット
         """
-        # if self.data is None:
+        # if self.data_df is None:
         #     self.get()
-        self.data_with_label["label"][self.data_with_label["label"] == 0] = "setosa"
-        self.data_with_label["label"][self.data_with_label["label"] == 1] = "versicolor"
-        self.data_with_label["label"][self.data_with_label["label"] == 2] = "virginica"
-        return sns.pairplot(self.data_with_label, hue="label", diag_kind=diag_kind)
+        self.data_df_with_label["label"][self.data_df_with_label["label"] == 0] = "setosa"
+        self.data_df_with_label["label"][self.data_df_with_label["label"] == 1] = "versicolor"
+        self.data_df_with_label["label"][self.data_df_with_label["label"] == 2] = "virginica"
+        return sns.pairplot(self.data_df_with_label, hue="label", diag_kind=diag_kind)
 
     def all_supervised(self, n_neighbors: int=4, model_params: dict = None, n_splits: int = 5, shuffle: bool = True, random_state: int = 0) -> None:
         """複数の教師あり学習モデルを評価する
 
         Args:
             n_neighbors (int): Number of neighbors to use for KNeighborsClassifier. Default is 4.
+            n_splits (int): Number of splits for KFold. Default is 5.
+            shuffle (bool): Whether to shuffle the data. Default is True.
+            random_state (int): Random seed. Default is 0.
 
         Returns:
             None
         """
+        
         iris = load_iris()
         X = iris.data
         y = iris.target
@@ -143,20 +151,23 @@ class AnalyzeIris:
 
                 print(f"test score: {test_score:.3f}, train score: {train_score:.3f}")
 
-    def get_supervised(self, model_params: dict = None, n_splits: int = 5, shuffle: bool = True, random_state: int = 0):
+    def get_supervised(self, n_splits: int = 5, shuffle: bool = True, random_state: int = 0):
         """教師あり学習モデルの評価を行いpandas.DataFrameで返す
         FIXME: 入力のmodel_paramsは使われていません。この関数の中で使う予定はありますか？また、各引数の説明を書きましょう。
         Returns:
             pd.DataFrame: 教師あり学習モデルの評価結果
 
-    
-        
         FIXED:
         パラメータを引数として受け取るように変更しました。
         FIXME: 引数にとったパラメータは使われていますか？この実装だとパラメータを変更しても、結果は変わらないと思います。
         """
-        if not self.scores or model_params:
+        if not self.scores:
             self.all_supervised()
+
+        """
+        else:
+            all_supervisedの引数とget_supervisedの引数が異なる場合、get_supervisedの引数を使ってall_supervisedを呼び出すように変更する
+        """
 
         df_results = pd.DataFrame(self.scores)
         return df_results
@@ -183,7 +194,7 @@ class AnalyzeIris:
                 n_features = len(model.feature_importances_)
                 
                 # 特徴量名を調整
-                feature_names = self.data.columns[:n_features]
+                feature_names = self.data_df.columns[:n_features]
                 
                 # プロット
                 plt.barh(range(n_features), model.feature_importances_, align="center")
@@ -200,7 +211,7 @@ class AnalyzeIris:
                 export_graphviz(
                     model,
                     out_file=f"{model_name}.dot",
-                    feature_names=self.data_with_label.columns[:-1],
+                    feature_names=self.data_df_with_label.columns[:-1],
                     class_names=["setosa", "versicolor", "virginica"],
                     filled=True,
                     rounded=True,
@@ -288,7 +299,7 @@ class AnalyzeIris:
             print("=" * 50)
             
     def plot_pca(self, n_components=2):
-        """今はPCA分析だけどお題はNMF分析らしい
+        """PCAによる次元削減を行い、2次元に削減したデータをプロットする
 
         Args:
             n_components (int, optional): _description_. Defaults to 2.
@@ -296,38 +307,121 @@ class AnalyzeIris:
         iris = load_iris()
         X = iris.data
         y = iris.target
-        
-        # 事前にスケーリング（0-1範囲に正規化）
-        scaler = MinMaxScaler()
-        X_scaled = scaler.fit_transform(X)  # ここでスケーリング
-        
+
+        # スケーリング前のPCA
         pca = PCA(n_components=n_components)
-        pca.fit(X_scaled)
-        X_scaled_pca = pca.transform(X_scaled)
+        pca.fit(X)
+        X_pca = pca.transform(X)
         
-        plt.figure(figsize=(8, 8))
+        # plt.figure(figsize=(8, 8))
+        # mglearn.discrete_scatter(X_pca[:, 0], X_pca[:, 1], y)
+        # plt.legend(iris.target_names, loc="best")
+        # plt.gca().set_aspect("equal")
+        # plt.xlabel("First component")
+        # plt.ylabel("Second component")
+        # plt.ylim([X_pca[:, 1].min() - 0.5, X_pca[:, 1].max() + 0.5])
+        # plt.xlim([X_pca[:, 0].min() - 0.5, X_pca[:, 0].max() + 0.5])
+        
+        # plt.matshow(pca.components_, cmap='viridis')
+        # plt.yticks([0, 1], ["First component", "Second component"])
+        # plt.colorbar()
+        # plt.xticks(range(len(iris.feature_names)), iris.feature_names, rotation=60, ha='left')
+        # plt.xlabel("Feature")
+        # plt.ylabel("Principal components")
+        
+
+        # スケーリング後のPCA
+        # scaler = MinMaxScaler()
+        scaler = StandardScaler()
+        X_scaled = scaler.fit_transform(X)
+        
+        pca_scaled = PCA(n_components=n_components)
+        pca_scaled.fit(X_scaled)
+        X_scaled_pca = pca_scaled.transform(X_scaled)
+
+        
+        plt.figure(figsize=(13, 8))
         mglearn.discrete_scatter(X_scaled_pca[:, 0], X_scaled_pca[:, 1], y)
         plt.legend(iris.target_names, loc="best")
         plt.gca().set_aspect("equal")
         plt.xlabel("First component")
         plt.ylabel("Second component")
-        
-        plt.matshow(pca.components_, cmap='viridis')
+        plt.ylim([X_scaled_pca[:, 1].min() - 0.5, X_scaled_pca[:, 1].max() + 0.5])
+        plt.xlim([X_scaled_pca[:, 0].min() - 0.5, X_scaled_pca[:, 0].max() + 0.5])
+
+        plt.matshow(pca_scaled.components_, cmap='viridis')
         plt.yticks([0, 1], ["First component", "Second component"])
         plt.colorbar()
         plt.xticks(range(len(iris.feature_names)), iris.feature_names, rotation=60, ha='left')
         plt.xlabel("Feature")
-        plt.ylabel("Principal components")
+        plt.ylabel("PCA components")
         
-        # nmf = NMF(n_components=n_components, random_state=0)
-        # nmf.fit(X_scaled)
-        # X_scaled_nmf = nmf.transform(X_scaled)
+        X_scaled_df = pd.DataFrame(X_scaled, columns=iris.feature_names)
+        df_pca = pd.DataFrame(pca_scaled.components_, columns=iris.feature_names)
+        
+        return X_scaled_df, df_pca, pca_scaled
+    
 
+    def plot_nmf(self, n_components=2):
+            """NMFによる次元削減を行い、2次元に削減したデータをプロットする
+
+            Args:
+                n_components (int, optional): _description_. Defaults to 2.
+            """
+            iris = load_iris()
+            X = iris.data
+            y = iris.target
+
+            # スケーリング前のNMF
+            nmf = NMF(n_components=n_components, init='random', random_state=0)
+            X_nmf = nmf.fit_transform(X)
+            
+            plt.figure(figsize=(8, 8))
+            mglearn.discrete_scatter(X_nmf[:, 0], X_nmf[:, 1], y)
+            plt.legend(iris.target_names, loc="best")
+            plt.gca().set_aspect("equal")
+            plt.xlabel("First component")
+            plt.ylabel("Second component")
+            plt.ylim([X_nmf[:, 1].min() - 0.5, X_nmf[:, 1].max() + 0.5])
+            plt.xlim([X_nmf[:, 0].min() - 0.5, X_nmf[:, 0].max() + 0.5])
+            
+            plt.matshow(nmf.components_, cmap='viridis')
+            plt.yticks(range(n_components), [f"Component {i+1}" for i in range(n_components)])
+            plt.colorbar()
+            plt.xticks(range(len(iris.feature_names)), iris.feature_names, rotation=60, ha='left')
+            plt.xlabel("Feature")
+            plt.ylabel("NMF components")
+
+            # スケーリング後のNMF
+            # scaler = StandardScaler()
+            scaler = MinMaxScaler()
+            X_scaled = scaler.fit_transform(X)
+            
+            nmf_scaled = NMF(n_components=n_components, init='random', random_state=0)
+            X_scaled_nmf = nmf_scaled.fit_transform(X_scaled)
+
+            # X_scaledをDataFrameに変換
+            X_scaled_df = pd.DataFrame(X_scaled, columns=iris.feature_names)
+            print(X_scaled_df.head())  # X_scaledの先頭5行を表示
+
+            plt.figure(figsize=(13, 8))
+            mglearn.discrete_scatter(X_scaled_nmf[:, 0], X_scaled_nmf[:, 1], y)
+            plt.legend(iris.target_names, loc="best")
+            plt.gca().set_aspect("equal")
+            plt.xlabel("First component")
+            plt.ylabel("Second component")
+            plt.ylim([X_scaled_nmf[:, 1].min() - 0.5, X_scaled_nmf[:, 1].max() + 0.5])
+            plt.xlim([X_scaled_nmf[:, 0].min() - 0.5, X_scaled_nmf[:, 0].max() + 0.5])
+
+            plt.matshow(nmf_scaled.components_, cmap='viridis')
+            plt.yticks(range(n_components), [f"Component {i+1}" for i in range(n_components)])
+            plt.colorbar()
+            plt.xticks(range(len(iris.feature_names)), iris.feature_names, rotation=60, ha='left')
+            plt.xlabel("Feature")
+            plt.ylabel("NMF components")
+            
+            df_nmf = pd.DataFrame(nmf_scaled.components_, columns=iris.feature_names)
+            
+            return X_scaled_df, df_nmf, nmf_scaled
         
-        # plt.matshow(nmf.components_, cmap='viridis')
-        # plt.yticks([0, 1], ["First component", "Second component"])
-        # plt.colorbar()
-        # plt.xticks(range(len(iris.feature_names)), iris.feature_names, rotation=60, ha='left')
-        # plt.xlabel("Feature")
-        # plt.ylabel("NMF components")
-        
+        # 回答と一致しない。本勉強してもう一度考えよう
