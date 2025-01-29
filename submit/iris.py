@@ -16,6 +16,8 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.preprocessing import MinMaxScaler, Normalizer, RobustScaler, StandardScaler
 from sklearn.svm import SVC, LinearSVC
 from sklearn.tree import DecisionTreeClassifier, export_graphviz
+from sklearn.manifold import TSNE
+from sklearn.cluster import KMeans
 
 
 class AnalyzeIris:
@@ -464,4 +466,65 @@ class AnalyzeIris:
             
             return X_scaled_df, df_nmf, nmf_scaled
         
+    def plot_tsne(self, random_state=0):
+        """t-SNEによる次元削減を行い、2次元に削減したデータをプロットする
+
+        Args:
+            random_state (int, optional): _description_. Defaults to 0.
+        """
+        tsne = TSNE(random_state=random_state)
+        X_tsne = tsne.fit_transform(self.X)
         
+        # 各データ点をテキストとしてプロット
+        for i in range(len(self.y)):
+            plt.text(X_tsne[i, 0], X_tsne[i, 1], str(self.y[i]), 
+                    fontsize=9, weight='bold', ha='center', va='center')
+
+        # 軸のラベルとスケール調整
+        plt.xlabel("t-SNE feature 0")
+        plt.ylabel("t-SNE feature 1")
+        plt.ylim([X_tsne[:, 1].min() - 0.5, X_tsne[:, 1].max() + 0.5])
+        plt.xlim([X_tsne[:, 0].min() - 0.5, X_tsne[:, 0].max() + 0.5])
+        
+        # print(self.y)
+    
+    def plot_k_means(self, n_clusters=3, random_state=0):
+        
+        scaler = StandardScaler()
+        X_scaled = scaler.fit_transform(self.X)
+        kmeans = KMeans(n_clusters=n_clusters, random_state=random_state, n_init="auto")
+        
+        kmeans.fit(X_scaled)
+        
+        print("KMeans法で予測したラベル:\n{}".format(kmeans.labels_))
+
+        # クラスタごとに色とマーカーを設定
+        colors = ['red', 'blue', 'green']
+        markers = ['^', 'o', 'v']  # ▲, ○, ▼
+
+        
+
+        for cluster in range(n_clusters):
+            plt.scatter(X_scaled[kmeans.labels_ == cluster, 0], X_scaled[kmeans.labels_ == cluster, 1], 
+                        c=colors[cluster], marker=markers[cluster])
+
+        # クラスタの中心を黒い星でプロット
+        plt.scatter(kmeans.cluster_centers_[:, 0], kmeans.cluster_centers_[:, 1], 
+                    marker='*', s=500, color='black')
+
+        # 軸ラベルを追加
+        plt.xlabel("First principal component", fontsize=12)
+        plt.ylabel("Second principal component", fontsize=12)
+        
+        plt.legend()
+        plt.show()
+        
+        print("実際のラベル:\n{}".format(self.y))
+        
+        for cluster in range(n_clusters):
+            plt.scatter(X_scaled[self.y == cluster, 0], X_scaled[self.y == cluster, 1], 
+                        c=colors[cluster], marker=markers[cluster], label=f"Cluster {cluster}")
+        plt.scatter(kmeans.cluster_centers_[:, 0], kmeans.cluster_centers_[:, 1], 
+                    marker='*', s=500, color='black')
+        plt.xlabel("First principal component", fontsize=12)
+        plt.ylabel("Second principal component", fontsize=12)
