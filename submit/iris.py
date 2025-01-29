@@ -1,6 +1,6 @@
 """Irisデータセットを分析するモジュール"""
 
-import graphviz
+# import graphviz
 import matplotlib.pyplot as plt
 import mglearn
 import numpy as np
@@ -391,7 +391,8 @@ class AnalyzeIris:
             plt.legend(iris.target_names, loc="best")
             plt.gca().set_aspect("equal")
             plt.xlabel("First component")
-            plt.ylabel("Second component")
+            plt.ylabel("Second component")  
+            plt.title("NMF")
             plt.ylim([X_nmf[:, 1].min() - 0.5, X_nmf[:, 1].max() + 0.5])
             plt.xlim([X_nmf[:, 0].min() - 0.5, X_nmf[:, 0].max() + 0.5])
             
@@ -403,13 +404,14 @@ class AnalyzeIris:
             plt.ylabel("NMF components")
 
             # スケーリング後のNMF
-            # scaler = StandardScaler()
-            scaler = MinMaxScaler()
+            scaler = StandardScaler()
+            # scaler = MinMaxScaler()
             X_scaled = scaler.fit_transform(X)
             
             nmf_scaled = NMF(n_components=n_components, init='random', random_state=0)
-            nmf_scaled.fit(X_scaled)
-            X_scaled_nmf = nmf_scaled.transform(X_scaled)
+            # nmf_scaled.fit(X_scaled)
+            X_scaled_nmf = nmf_scaled.fit_transform(X_scaled - X_scaled.min())  # NMFは非負値のみ扱うため、最小値を調整
+
 
 
             plt.figure(figsize=(13, 8))
@@ -418,8 +420,9 @@ class AnalyzeIris:
             plt.gca().set_aspect("equal")
             plt.xlabel("First component")
             plt.ylabel("Second component")
-            plt.ylim([X_scaled_nmf[:, 1].min(), X_scaled_nmf[:, 1].max() + 0.1])
-            plt.xlim([X_scaled_nmf[:, 0].min(), X_scaled_nmf[:, 0].max() + 0.1])
+            plt.title("NMF with StandardScaler")
+            plt.ylim([X_scaled_nmf[:, 1].min()-0.5, X_scaled_nmf[:, 1].max() + 0.5])
+            plt.xlim([X_scaled_nmf[:, 0].min()-0.5, X_scaled_nmf[:, 0].max() + 0.5])
 
             plt.matshow(nmf_scaled.components_, cmap='viridis')
             plt.yticks(range(n_components), [f"Component {i+1}" for i in range(n_components)])
