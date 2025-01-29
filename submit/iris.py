@@ -418,8 +418,8 @@ class AnalyzeIris:
             plt.gca().set_aspect("equal")
             plt.xlabel("First component")
             plt.ylabel("Second component")
-            plt.ylim([X_scaled_nmf[:, 1].min() - 0.5, X_scaled_nmf[:, 1].max() + 0.5])
-            plt.xlim([X_scaled_nmf[:, 0].min() - 0.5, X_scaled_nmf[:, 0].max() + 0.5])
+            plt.ylim([X_scaled_nmf[:, 1].min(), X_scaled_nmf[:, 1].max() + 0.1])
+            plt.xlim([X_scaled_nmf[:, 0].min(), X_scaled_nmf[:, 0].max() + 0.1])
 
             plt.matshow(nmf_scaled.components_, cmap='viridis')
             plt.yticks(range(n_components), [f"Component {i+1}" for i in range(n_components)])
@@ -434,4 +434,4 @@ class AnalyzeIris:
             
             return X_scaled_df, df_nmf, nmf_scaled
         
-        # 回答と一致しない。本勉強してもう一度考えよう
+        
