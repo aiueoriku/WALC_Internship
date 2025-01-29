@@ -17,7 +17,8 @@ from sklearn.preprocessing import MinMaxScaler, Normalizer, RobustScaler, Standa
 from sklearn.svm import SVC, LinearSVC
 from sklearn.tree import DecisionTreeClassifier, export_graphviz
 from sklearn.manifold import TSNE
-from sklearn.cluster import KMeans
+from sklearn.cluster import KMeans, DBSCAN
+from scipy.cluster.hierarchy import dendrogram, ward
 
 
 class AnalyzeIris:
@@ -528,3 +529,33 @@ class AnalyzeIris:
                     marker='*', s=500, color='black')
         plt.xlabel("First principal component", fontsize=12)
         plt.ylabel("Second principal component", fontsize=12)
+        
+    def plot_dendrogram(self, truncate=False, p=10):
+        """
+        Ward法を用いた階層的クラスタリングのデンドログラムを描画
+
+        Args:
+            truncate (bool): True の場合、デンドログラムを省略表示
+            p (int): truncate=True の場合に表示するクラスタの数 (デフォルト: 5)
+        """
+        linkage_array = ward(self.X)  # Ward法によるクラスタリング
+        # truncate=True の場合、一部のクラスタのみ表示
+        if truncate:
+            dendrogram(linkage_array, truncate_mode='lastp', p=p)
+        else:
+            dendrogram(linkage_array)
+
+    def plot_dbscan(self, scaling=False, eps=0.5, min_samples=5):
+        if scaling:
+            self.X = StandardScaler().fit_transform(self.X)
+        
+        dbscan = DBSCAN(eps=eps, min_samples=min_samples)
+        clusters = dbscan.fit_predict(self.X)
+        
+        plt.scatter(self.X[:, 2], self.X[:, 3], c=clusters, cmap=mglearn.cm2, s=60)
+        plt.xlabel("Feature 2")
+        plt.ylabel("Feature 3")
+        
+        print("Cluster memberships:\n{}".format(clusters))
+        
+        
