@@ -18,7 +18,8 @@ from sklearn.svm import SVC, LinearSVC
 from sklearn.tree import DecisionTreeClassifier, export_graphviz
 from sklearn.manifold import TSNE
 from sklearn.cluster import KMeans, DBSCAN
-from scipy.cluster.hierarchy import dendrogram, ward
+from scipy.cluster.hierarchy import dendrogram, ward, fcluster
+from sklearn.metrics import adjusted_rand_score
 
 
 
@@ -518,7 +519,9 @@ class AnalyzeIris:
         
         kmeans.fit(X_scaled)
         
-        print("KMeans法で予測したラベル:\n{}".format(kmeans.labels_))
+        self.kmeans_labels = kmeans.labels_
+        
+        print("KMeans法で予測したラベル:\n{}".format(self.kmeans_labels))
 
         # クラスタごとに色とマーカーを設定
         colors = ['red', 'blue', 'green']
@@ -527,7 +530,7 @@ class AnalyzeIris:
         
 
         for cluster in range(n_clusters):
-            plt.scatter(X_scaled[kmeans.labels_ == cluster, 0], X_scaled[kmeans.labels_ == cluster, 1], 
+            plt.scatter(X_scaled[self.kmeans_labels == cluster, 0], X_scaled[self.kmeans_labels == cluster, 1], 
                         c=colors[cluster], marker=markers[cluster])
 
         # クラスタの中心を黒い星でプロット
@@ -558,7 +561,14 @@ class AnalyzeIris:
             truncate (bool): True の場合、デンドログラムを省略表示
             p (int): truncate=True の場合に表示するクラスタの数 (デフォルト: 5)
         """
+        
         linkage_array = ward(self.X)  # Ward法によるクラスタリング
+        
+        
+        # クラスタラベルを取得（3個に分割）
+        self.ward_labels = fcluster(linkage_array, t=3, criterion='maxclust')
+
+        
         # truncate=True の場合、一部のクラスタのみ表示
         if truncate:
             dendrogram(linkage_array, truncate_mode='lastp', p=p)
@@ -582,6 +592,7 @@ class AnalyzeIris:
         # DBSCAN クラスタリング
         dbscan = DBSCAN(eps=eps, min_samples=min_samples)
         clusters = dbscan.fit_predict(X_scaled) # 0, 1, -1
+        self.dbscan_labels = clusters
 
         # クラスタごとの色を手動設定
         cluster_colors = {0: 'red', 1: 'green', -1: 'blue'}
@@ -600,5 +611,22 @@ class AnalyzeIris:
 
         print("Cluster Memberships:\n", clusters)
 
-    def calc_ARI(self):
-        """KMeans, Dendrogram, DBSCANのARIを計算"""
+
+    def calc_all_ARI(self):
+        """すべてのクラスタリング結果の ARI を計算"""
+        ari_results = {}
+
+        if hasattr(self, "kmeans_labels"):
+            ari_results["KMeans"] = adjusted_rand_score(self.y, self.kmeans_labels)
+
+        if hasattr(self, "ward_labels"):
+            ari_results["ward"] = adjusted_rand_score(self.y, self.ward_labels)
+
+        if hasattr(self, "dbscan_labels"):
+            ari_results["DBSCAN"] = adjusted_rand_score(self.y, self.dbscan_labels)
+
+        print("\n=== Adjusted Rand Index (ARI) ===")
+        for method, ari in ari_results.items():
+            print(f"{method}: {ari:.3f}")
+
+
