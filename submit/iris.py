@@ -545,17 +545,37 @@ class AnalyzeIris:
         else:
             dendrogram(linkage_array)
 
-    def plot_dbscan(self, scaling=False, eps=0.5, min_samples=5):
+    def plot_dbscan(self, scaling=False, eps=0.6, min_samples=3):
+        """DBSCAN を用いたクラスタリング結果をプロット
+
+        Args:
+            scaling (bool): True の場合、特徴量を標準化
+            eps (float): クラスタリングの最大距離閾値
+            min_samples (int): クラスタとみなす最小データ数
+        """
+        # スケーリング処理
         if scaling:
-            self.X = StandardScaler().fit_transform(self.X)
-        
+            X_scaled = StandardScaler().fit_transform(self.X)
+        else:
+            X_scaled = self.X
+
+        # DBSCAN クラスタリング
         dbscan = DBSCAN(eps=eps, min_samples=min_samples)
-        clusters = dbscan.fit_predict(self.X)
-        
-        plt.scatter(self.X[:, 2], self.X[:, 3], c=clusters, cmap=mglearn.cm2, s=60)
-        plt.xlabel("Feature 2")
-        plt.ylabel("Feature 3")
-        
-        print("Cluster memberships:\n{}".format(clusters))
-        
-        
+        clusters = dbscan.fit_predict(X_scaled) # 0, 1, -1
+
+        # クラスタごとの色を手動設定
+        cluster_colors = {0: 'red', 1: 'green', -1: 'blue'}
+
+        for cluster, color in cluster_colors.items():
+            plt.scatter(
+                X_scaled[clusters == cluster, 2], X_scaled[clusters == cluster, 3], 
+                c=color, edgecolors='k', s=60, label=f"Cluster {cluster}" if cluster != -1 else "Noise"
+            )
+
+        plt.xlabel("Feature 2 (Petal Length)")
+        plt.ylabel("Feature 3 (Petal Width)")
+        plt.title(f"DBSCAN Clustering (eps={eps}, min_samples={min_samples})")
+        plt.legend()
+        plt.show()
+
+        print("Cluster Memberships:\n", clusters)
