@@ -21,6 +21,7 @@ from sklearn.cluster import KMeans, DBSCAN
 from scipy.cluster.hierarchy import dendrogram, ward
 
 
+
 class AnalyzeIris:
     """Irisデータセットを分析するクラス"""
 
@@ -29,13 +30,11 @@ class AnalyzeIris:
     # FIXED : random_stateをコンストラクタの引数として設定しました
 
     def __init__(self, random_state=0):  # self: インスタンス自身を指す
-        """AnalyzeIrisクラスのコンストラクタ
+        """コンストラクタ
 
-        Attributes:
-            data (pd.DataFrame): Irisデータセットのデータフレーム
-            scores (dict): モデルのスコアを格納する辞書
-            random_state (int): 乱数のシード
-
+        Args:
+            random_state (int, optional): 乱数のシード. Defaults to 0.
+            
         """
         # FIXME: dataの中身がdfなので、それを明示した名前がいいと思います。df_dataとか
         # FIXED: data_dfに変更しました
@@ -91,14 +90,14 @@ class AnalyzeIris:
     #     return self.data_df
     
     def get(self):
-        """irisデータセットをロードしてデータフレームを返す（ラベルを追加） 
+        """ラベル付のデータフレームを返す
 
         Returns:
-            pd.DataFrame: ラベルを含む新しいデータフレーム
+            pd.DataFrame: ラベルを含むデータフレーム
         """
         data_df = pd.DataFrame(self.X, columns=self.feature_names)
         if "label" not in data_df.columns:
-            # 新しいデータフレームにラベルを追加
+            # データフレームにラベルを追加
             self.data_df_with_label = data_df.copy()
             self.data_df_with_label["label"] = self.y
             return self.data_df_with_label
@@ -121,13 +120,13 @@ class AnalyzeIris:
         return data_df.corr()
 
     def pair_plot(self, diag_kind: str = "hist") -> sns.PairGrid:
-        """ペアプロットを作成して表示
+        """ペアプロットを表示
 
         Args:
             diag_kind (str): 対角成分のグラフの種類. Default is "hist".
 
         Returns:
-            sns.PairGrid: 作成されたペアプロット
+            sns.PairGrid: ペアプロット
         """
         # if self.data_df is None:
         #     self.get()
@@ -136,14 +135,13 @@ class AnalyzeIris:
         self.data_df_with_label["label"][self.data_df_with_label["label"] == 2] = "virginica"
         return sns.pairplot(self.data_df_with_label, hue="label", diag_kind=diag_kind)
 
-    def all_supervised(self, n_neighbors: int=4, n_splits: int = 5, shuffle: bool = True, random_state: int = 0) -> None:
+    def all_supervised(self, n_neighbors = 4, n_splits: int = 5, shuffle: bool = True, random_state: int = 0) -> None:
         """複数の教師あり学習モデルを評価する
 
         Args:
-            n_neighbors (int): Number of neighbors to use for KNeighborsClassifier. Default is 4.
-            n_splits (int): Number of splits for KFold. Default is 5.
-            shuffle (bool): Whether to shuffle the data. Default is True.
-            random_state (int): Random seed. Default is 0.
+            n_splits (int): KFoldの分割数
+            shuffle (bool): データをシャッフルするかどうか
+            random_state (int): 乱数シード
 
         Returns:
             None
@@ -158,6 +156,11 @@ class AnalyzeIris:
         # スコアとモデルをリセット
         self.scores = {}
         self.trained_models = {}
+        
+        # 引数をget_supervisedからアクセスできるようにする
+        self.n_splits = n_splits
+        self.shuffle = shuffle
+        self.random_state = random_state
         
         for model_name, model in self.models:
             print(f"=== {model_name} ===")
@@ -178,7 +181,7 @@ class AnalyzeIris:
 
                 print(f"test score: {test_score:.3f}, train score: {train_score:.3f}")
 
-    def get_supervised(self,n_splits: int = 5, shuffle: bool = True, random_state: int = 0):
+    def get_supervised(self,n_splits: int = 5, shuffle: bool = True, random_state: int = 0) -> pd.DataFrame:
         """教師あり学習モデルの評価を行いpandas.DataFrameで返す
         FIXME: 入力のmodel_paramsは使われていません。この関数の中で使う予定はありますか？また、各引数の説明を書きましょう。
         FIXED: model_paramsを削除しました
@@ -195,15 +198,17 @@ class AnalyzeIris:
         FIXED:
         パラメータを引数として受け取るように変更しました。
         FIXME: 引数にとったパラメータは使われていますか？この実装だとパラメータを変更しても、結果は変わらないと思います。
+        FIXED: 引数を使ってKFoldの分割数、シャッフルの有無、乱数シードを変更できるようにしました。
         """
         
         if not self.scores:
-            self.all_supervised()
-
-        """
+            # 評価が行われていない場合、現在の引数で all_supervised を実行
+            self.all_supervised(n_splits=n_splits, shuffle=shuffle, random_state=random_state)
         else:
-            all_supervisedの引数とget_supervisedの引数が異なる場合、get_supervisedの引数を使ってall_supervisedを呼び出すように変更する
-        """
+            # 既にスコアがある場合、引数が異なるかを確認し、異なれば再実行
+            if self.n_splits != n_splits or self.shuffle != shuffle or self.random_state != random_state:
+                print("引数が変更されたため、再評価を行います。")
+                self.all_supervised(n_splits=n_splits, shuffle=shuffle, random_state=random_state)
 
         df_results = pd.DataFrame(self.scores)
         return df_results
@@ -341,7 +346,12 @@ class AnalyzeIris:
         """PCAによる次元削減を行い、2次元に削減したデータをプロットする
 
         Args:
-            n_components (int, optional): _description_. Defaults to 2.
+            n_components (int, optional): 次元削減後の次元数. Defaults to 2.
+            
+        Returns:
+            X_scaled_df (DataFrame): スケーリング後のデータ
+            df_pca (DataFrame): PCAによる次元削減後のデータ
+            pca_scaled (PCA): スケーリング後のPCAモデル
         """
         # iris = load_iris()
         # X = iris.data
@@ -405,7 +415,12 @@ class AnalyzeIris:
             """NMFによる次元削減を行い、2次元に削減したデータをプロットする
 
             Args:
-                n_components (int, optional): _description_. Defaults to 2.
+                n_components (int, optional): 次元削減後の次元数. Defaults to 2.
+            
+            Returns:
+                X_scaled_df (DataFrame): スケーリング後のデータ
+                df_nmf (DataFrame): nmfによる次元削減後のデータ
+                nmf_scaled (nmf): スケーリング後のnmfモデル
             """
             # iris = load_iris()
             # X = iris.data
@@ -471,7 +486,7 @@ class AnalyzeIris:
         """t-SNEによる次元削減を行い、2次元に削減したデータをプロットする
 
         Args:
-            random_state (int, optional): _description_. Defaults to 0.
+            random_state (int, optional): 乱数のシード. Defaults to 0.
         """
         tsne = TSNE(random_state=random_state)
         X_tsne = tsne.fit_transform(self.X)
@@ -490,6 +505,12 @@ class AnalyzeIris:
         # print(self.y)
     
     def plot_k_means(self, n_clusters=3, random_state=0):
+        """KMeans法によるクラスタリングを行い、クラスタごとにプロットする
+
+        Args:
+            n_clusters (int, optional): クラスタ数. Defaults to 3.
+            random_state (int, optional): 乱数のシード. Defaults to 0.
+        """
         
         scaler = StandardScaler()
         X_scaled = scaler.fit_transform(self.X)
@@ -531,8 +552,7 @@ class AnalyzeIris:
         plt.ylabel("Second principal component", fontsize=12)
         
     def plot_dendrogram(self, truncate=False, p=10):
-        """
-        Ward法を用いた階層的クラスタリングのデンドログラムを描画
+        """Ward法を用いた階層的クラスタリングのデンドログラムを描画
 
         Args:
             truncate (bool): True の場合、デンドログラムを省略表示
@@ -579,3 +599,6 @@ class AnalyzeIris:
         plt.show()
 
         print("Cluster Memberships:\n", clusters)
+
+    def calc_ARI(self):
+        """KMeans, Dendrogram, DBSCANのARIを計算"""
