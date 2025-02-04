@@ -1,55 +1,50 @@
 """Irisデータセットを分析するモジュール"""
 
-# import graphviz
+import graphviz
 import matplotlib.pyplot as plt
 import mglearn
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from scipy.cluster.hierarchy import dendrogram, fcluster, ward
+from sklearn.cluster import DBSCAN, KMeans
 from sklearn.datasets import load_iris
 from sklearn.decomposition import NMF, PCA
 from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
 from sklearn.linear_model import LinearRegression, LogisticRegression
+from sklearn.manifold import TSNE
+from sklearn.metrics import adjusted_rand_score
 from sklearn.model_selection import KFold
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.neural_network import MLPClassifier
 from sklearn.preprocessing import MinMaxScaler, Normalizer, RobustScaler, StandardScaler
 from sklearn.svm import SVC, LinearSVC
 from sklearn.tree import DecisionTreeClassifier, export_graphviz
-from sklearn.manifold import TSNE
-from sklearn.cluster import KMeans, DBSCAN
-from scipy.cluster.hierarchy import dendrogram, ward, fcluster
-from sklearn.metrics import adjusted_rand_score
-
 
 
 class AnalyzeIris:
     """Irisデータセットを分析するクラス"""
-
-    # random_state=0 は再現性を担保するために設定
-    # FIXME : random_stateを変えたい場合はどうしますか？この乱数では結果が悪かったので他の乱数を使いたい場合も出てくるかもしれません。
-    # FIXED : random_stateをコンストラクタの引数として設定しました
 
     def __init__(self, random_state=0):  # self: インスタンス自身を指す
         """コンストラクタ
 
         Args:
             random_state (int, optional): 乱数のシード. Defaults to 0.
-            
+
         """
         # FIXME: dataの中身がdfなので、それを明示した名前がいいと思います。df_dataとか
         # FIXED: data_dfに変更しました
-        
+
         # self.data_df = self._load_iris_data()  # データを初期化時にロード
         # self.data_df = self._load_iris_data()  # データを初期化時にロード
-        
+
         # データセットの読み込み
         iris = load_iris()
         self.X = iris.data # 特徴量
         self.y = iris.target # ラベル
         self.feature_names = iris.feature_names # 特徴量名
         self.target_names = iris.target_names # ラベル名
-        
+
         self.data_df_with_label = None  # ラベル付きデータは初期化時にはNone
         self.scores = {}  # 各メソッドで共通の結果を格納
         self.random_state = random_state # random_stateをインスタンス変数として保持
@@ -59,13 +54,14 @@ class AnalyzeIris:
             ("LinearSVC", LinearSVC(random_state=random_state)), # FIXED: random_stateをselfで持つように変更しました
             ("SVC", SVC(random_state=random_state)),
             ("DecisionTreeClassifier", DecisionTreeClassifier(random_state=random_state, max_depth=4)),
-            ("KNeighborsClassifier", KNeighborsClassifier(n_neighbors=4)),
+            ("KNeighborsClassifier", KNeighborsClassifier(n_neighbors=4)), # 引数のベタがきはあまり良くない。
             ("LinearRegression", LinearRegression()),
             ("RandomForestClassifier", RandomForestClassifier(random_state=random_state)),
             ("GradientBoostingClassifier", GradientBoostingClassifier(random_state=random_state)),
             ("MLPClassifier", MLPClassifier(random_state=random_state))
         ]
         
+    # レビューまでに余計なコメントアウトは消す
 
     # def _load_iris_data(self):
     #     """Irisデータセットをロードして特徴量データフレームに変換
@@ -96,7 +92,7 @@ class AnalyzeIris:
         Returns:
             pd.DataFrame: ラベルを含むデータフレーム
         """
-        data_df = pd.DataFrame(self.X, columns=self.feature_names)
+        data_df = pd.DataFrame(self.X, columns=self.feature_names) # df_dataの方がいい（抽象度が高い順）
         if "label" not in data_df.columns:
             # データフレームにラベルを追加
             self.data_df_with_label = data_df.copy()
@@ -131,12 +127,12 @@ class AnalyzeIris:
         """
         # if self.data_df is None:
         #     self.get()
-        self.data_df_with_label["label"][self.data_df_with_label["label"] == 0] = "setosa"
+        self.data_df_with_label["label"][self.data_df_with_label["label"] == 0] = "setosa" # コンストラクタで指定すればいいのでは？
         self.data_df_with_label["label"][self.data_df_with_label["label"] == 1] = "versicolor"
         self.data_df_with_label["label"][self.data_df_with_label["label"] == 2] = "virginica"
         return sns.pairplot(self.data_df_with_label, hue="label", diag_kind=diag_kind)
 
-    def all_supervised(self, n_neighbors = 4, n_splits: int = 5, shuffle: bool = True, random_state: int = 0) -> None:
+    def all_supervised(self, n_neighbors = 4, n_splits: int = 5, shuffle: bool = True, random_state: int = 0) -> None: # n_neighborsを使う実装にする
         """複数の教師あり学習モデルを評価する
 
         Args:
@@ -148,6 +144,9 @@ class AnalyzeIris:
             None
         """
         
+        # ここでself.modelsを更新？
+        
+        
         # iris = load_iris()
         # X = iris.data
         # y = iris.target
@@ -158,7 +157,8 @@ class AnalyzeIris:
         self.scores = {}
         self.trained_models = {}
         
-        # 引数をget_supervisedからアクセスできるようにする
+        # 引数をget_supervisedからアクセスできるようにする→参照していない
+        # selfの引数は全部コンストラクタで作った方がいい（関数が実行されないとselfの引数が反映されない）
         self.n_splits = n_splits
         self.shuffle = shuffle
         self.random_state = random_state
@@ -182,7 +182,7 @@ class AnalyzeIris:
 
                 print(f"test score: {test_score:.3f}, train score: {train_score:.3f}")
 
-    def get_supervised(self,n_splits: int = 5, shuffle: bool = True, random_state: int = 0) -> pd.DataFrame:
+    def get_supervised(self, n_splits: int = 5, shuffle: bool = True, random_state: int = 0) -> pd.DataFrame:
         """教師あり学習モデルの評価を行いpandas.DataFrameで返す
         FIXME: 入力のmodel_paramsは使われていません。この関数の中で使う予定はありますか？また、各引数の説明を書きましょう。
         FIXED: model_paramsを削除しました
@@ -201,6 +201,10 @@ class AnalyzeIris:
         FIXME: 引数にとったパラメータは使われていますか？この実装だとパラメータを変更しても、結果は変わらないと思います。
         FIXED: 引数を使ってKFoldの分割数、シャッフルの有無、乱数シードを変更できるようにしました。
         """
+        
+        # n_splitsを変えると結果がさらにappendされる
+        # 引数を変えたい場合はコンストラクタを立ち上げ直す（コンストラクタで引数など指定）
+        # 例えば、iris2 = AnalyzeIris()など
         
         if not self.scores:
             # 評価が行われていない場合、現在の引数で all_supervised を実行
@@ -291,6 +295,10 @@ class AnalyzeIris:
             (1, 3),  # sepal width vs petal width
             (2, 3),  # petal length vs petal width
         ]
+        # combination関数があるかも
+        # カラムが4つじゃなくても対応したい
+        # for文を2個回す？
+        # グラフの縦軸横軸の説明が1つしかない
 
         for train_index, test_index in kf.split(self.X):
             X_train, X_test = self.X[train_index], self.X[test_index]
@@ -357,28 +365,13 @@ class AnalyzeIris:
         # iris = load_iris()
         # X = iris.data
         # y = iris.target
+        
+        # 回答が違う理由：パイソンやsklearnのバージョンによって結果が異なることがある.あとはrandomseedの違い
 
         # スケーリング前のPCA
         pca = PCA(n_components=n_components)
         pca.fit(self.X)
         X_pca = pca.transform(self.X)
-        
-        # plt.figure(figsize=(8, 8))
-        # mglearn.discrete_scatter(X_pca[:, 0], X_pca[:, 1], self.y)
-        # plt.legend(self.target_names, loc="best")
-        # plt.gca().set_aspect("equal")
-        # plt.xlabel("First component")
-        # plt.ylabel("Second component")
-        # plt.ylim([X_pca[:, 1].min() - 0.5, X_pca[:, 1].max() + 0.5])
-        # plt.xlim([X_pca[:, 0].min() - 0.5, X_pca[:, 0].max() + 0.5])
-        
-        # plt.matshow(pca.components_, cmap='viridis')
-        # plt.yticks([0, 1], ["First component", "Second component"])
-        # plt.colorbar()
-        # plt.xticks(range(len(self.feature_names)), self.feature_names, rotation=60, ha='left')
-        # plt.xlabel("Feature")
-        # plt.ylabel("Principal components")
-        
 
         # スケーリング後のPCA
         # scaler = MinMaxScaler()
@@ -389,7 +382,7 @@ class AnalyzeIris:
         pca_scaled.fit(X_scaled)
         X_scaled_pca = pca_scaled.transform(X_scaled)
 
-        
+        # plot関数は外に出した方がいい
         plt.figure(figsize=(13, 8))
         mglearn.discrete_scatter(X_scaled_pca[:, 0], X_scaled_pca[:, 1], self.y)
         plt.legend(self.target_names, loc="best")
@@ -489,6 +482,9 @@ class AnalyzeIris:
         Args:
             random_state (int, optional): 乱数のシード. Defaults to 0.
         """
+        # tsne, pca, nmfの結果を比較する.どれが一番いい？
+        # walcのコーディング設定ちゃんとすれば赤いエラーは出ないはず
+        
         tsne = TSNE(random_state=random_state)
         X_tsne = tsne.fit_transform(self.X)
         
@@ -533,6 +529,7 @@ class AnalyzeIris:
             plt.scatter(X_scaled[self.kmeans_labels == cluster, 0], X_scaled[self.kmeans_labels == cluster, 1], 
                         c=colors[cluster], marker=markers[cluster])
 
+        # ここのプロットの関数も括りだしていいかも
         # クラスタの中心を黒い星でプロット
         plt.scatter(kmeans.cluster_centers_[:, 0], kmeans.cluster_centers_[:, 1], 
                     marker='*', s=500, color='black')
@@ -595,7 +592,8 @@ class AnalyzeIris:
         self.dbscan_labels = clusters
 
         # クラスタごとの色を手動設定
-        cluster_colors = {0: 'red', 1: 'green', -1: 'blue'}
+        cluster_colors = {0: 'red', 1: 'green', -1: 'blue'} # 花の数が変わってもいいように設定
+        # 2も追加する
 
         for cluster, color in cluster_colors.items():
             plt.scatter(
@@ -629,4 +627,13 @@ class AnalyzeIris:
         for method, ari in ari_results.items():
             print(f"{method}: {ari:.3f}")
 
+# データ分析の聞かれるポイント
 
+# 元データ見る。pairplot見てわかることは？
+# 練習問題2。一番いい結果は？なんで？どうしてこの手法が結果良かった？
+# best_supervisedは5つの結果の平均を返す。学習済みモデルを渡すには？
+# スケールがどれがいい？
+# 思ったこと言ってよ
+# 目的は一番精度が高いIrisの分類モデルを見つけること
+# どの手法がいい？
+# コードかデータ分析の穴がある方突っ込まれる
