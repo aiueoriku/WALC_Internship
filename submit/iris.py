@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import graphviz
+import mglearn
 
 from scipy.cluster.hierarchy import dendrogram, fcluster, ward
 from sklearn.cluster import DBSCAN, KMeans
