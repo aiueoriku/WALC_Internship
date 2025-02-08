@@ -33,10 +33,10 @@ class AnalyzeIris:
 
         """
         # FIXME: dataの中身がdfなので、それを明示した名前がいいと思います。df_dataとか
-        # FIXED: df_dataに変更しました
+        # FIXED: data_dfに変更しました
 
-        # self.df_data = self._load_iris_data()  # データを初期化時にロード
-        # self.df_data = self._load_iris_data()  # データを初期化時にロード
+        # self.data_df = self._load_iris_data()  # データを初期化時にロード
+        # self.data_df = self._load_iris_data()  # データを初期化時にロード
 
         # データセットの読み込み
         iris = load_iris()
@@ -45,7 +45,7 @@ class AnalyzeIris:
         self.feature_names = iris.feature_names # 特徴量名
         self.target_names = iris.target_names # ラベル名
 
-        self.df_data_with_label = None  # ラベル付きデータは初期化時にはNone
+        self.data_df_with_label = None  # ラベル付きデータは初期化時にはNone
         self.scores = {}  # 各メソッドで共通の結果を格納
         self.random_state = random_state # random_stateをインスタンス変数として保持
         self.trained_models = {}  # 学習済みモデルを格納
@@ -60,6 +60,31 @@ class AnalyzeIris:
             ("GradientBoostingClassifier", GradientBoostingClassifier(random_state=random_state)),
             ("MLPClassifier", MLPClassifier(random_state=random_state))
         ]
+        
+    # レビューまでに余計なコメントアウトは消す
+
+    # def _load_iris_data(self):
+    #     """Irisデータセットをロードして特徴量データフレームに変換
+        
+    #     Returns:
+    #         pd.DataFrame: Irisデータセットの特徴量データフ
+    #     """
+    #     iris = load_iris()
+    #     df_data = pd.DataFrame(iris.data, columns=iris.feature_names)
+    #     return df_data
+
+    # def get(self):
+    #     """Irisデータセットをロードしてデータフレームを返す（ラベルを追加）
+    #     FIXME: 関数名とやっていることがあっていません。get関数でラベルを追加する挙動は使用する側が混乱します。
+    #     Returns:
+    #         pd.DataFrame: ラベルを含む新しいデータフレーム
+    #     """
+    #     if "label" not in self.data_df.columns:
+    #         # 新しいデータフレームにラベルを追加
+    #         self.data_df_with_label = self.data_df.copy()
+    #         self.data_df_with_label["label"] = load_iris().target
+    #         return self.data_df_with_label
+    #     return self.data_df
     
     def get(self):
         """ラベル付のデータフレームを返す
@@ -67,12 +92,12 @@ class AnalyzeIris:
         Returns:
             pd.DataFrame: ラベルを含むデータフレーム
         """
-        df_data = pd.DataFrame(self.X, columns=self.feature_names)
-        if "label" not in df_data.columns:
+        data_df = pd.DataFrame(self.X, columns=self.feature_names) # df_dataの方がいい（抽象度が高い順）
+        if "label" not in data_df.columns:
             # データフレームにラベルを追加
-            self.df_data_with_label = df_data.copy()
-            self.df_data_with_label["label"] = self.y
-            return self.df_data_with_label
+            self.data_df_with_label = data_df.copy()
+            self.data_df_with_label["label"] = self.y
+            return self.data_df_with_label
 
     def get_correlation(self):
         """データフレームの相関行列を計算
@@ -81,15 +106,15 @@ class AnalyzeIris:
             pd.DataFrame: データフレームの相関行列
 
         """
-        # if self.df_data is None:
+        # if self.data_df is None:
         #     # FIXME: 全ての関数でこれをやっているなら修正が必要ですね
         #     self.get()
-        # data_without_label = self.df_data.drop("label", axis=1)
+        # data_without_label = self.data_df.drop("label", axis=1)
         # return data_without_label.corr()
-        df_data = pd.DataFrame(self.X, columns=self.feature_names)
+        data_df = pd.DataFrame(self.X, columns=self.feature_names)
         
         
-        return df_data.corr()
+        return data_df.corr()
 
     def pair_plot(self, diag_kind: str = "hist") -> sns.PairGrid:
         """ペアプロットを表示
@@ -100,12 +125,12 @@ class AnalyzeIris:
         Returns:
             sns.PairGrid: ペアプロット
         """
-        # if self.df_data is None:
+        # if self.data_df is None:
         #     self.get()
-        self.df_data_with_label["label"][self.df_data_with_label["label"] == 0] = "setosa" # コンストラクタで指定すればいいのでは？
-        self.df_data_with_label["label"][self.df_data_with_label["label"] == 1] = "versicolor"
-        self.df_data_with_label["label"][self.df_data_with_label["label"] == 2] = "virginica"
-        return sns.pairplot(self.df_data_with_label, hue="label", diag_kind=diag_kind)
+        self.data_df_with_label["label"][self.data_df_with_label["label"] == 0] = "setosa" # コンストラクタで指定すればいいのでは？
+        self.data_df_with_label["label"][self.data_df_with_label["label"] == 1] = "versicolor"
+        self.data_df_with_label["label"][self.data_df_with_label["label"] == 2] = "virginica"
+        return sns.pairplot(self.data_df_with_label, hue="label", diag_kind=diag_kind)
 
     def all_supervised(self, n_neighbors = 4, n_splits: int = 5, shuffle: bool = True, random_state: int = 0) -> None: # n_neighborsを使う実装にする
         """複数の教師あり学習モデルを評価する
@@ -118,6 +143,13 @@ class AnalyzeIris:
         Returns:
             None
         """
+        
+        # ここでself.modelsを更新？
+        
+        
+        # iris = load_iris()
+        # X = iris.data
+        # y = iris.target
 
         kf = KFold(n_splits=n_splits, shuffle=shuffle, random_state=random_state)
         
@@ -152,7 +184,9 @@ class AnalyzeIris:
 
     def get_supervised(self, n_splits: int = 5, shuffle: bool = True, random_state: int = 0) -> pd.DataFrame:
         """教師あり学習モデルの評価を行いpandas.DataFrameで返す
-
+        FIXME: 入力のmodel_paramsは使われていません。この関数の中で使う予定はありますか？また、各引数の説明を書きましょう。
+        FIXED: model_paramsを削除しました
+        
         Args:
             n_splits (int): Number of splits for KFold.
             shuffle (bool): Whether to shuffle the data.
@@ -160,8 +194,17 @@ class AnalyzeIris:
         
         Returns:
             pd.DataFrame: 教師あり学習モデルの評価結果
-        """
+            
 
+        FIXED:
+        パラメータを引数として受け取るように変更しました。
+        FIXME: 引数にとったパラメータは使われていますか？この実装だとパラメータを変更しても、結果は変わらないと思います。
+        FIXED: 引数を使ってKFoldの分割数、シャッフルの有無、乱数シードを変更できるようにしました。
+        """
+        
+        # n_splitsを変えると結果がさらにappendされる
+        # 引数を変えたい場合はコンストラクタを立ち上げ直す（コンストラクタで引数など指定）
+        # 例えば、iris2 = AnalyzeIris()など
         
         if not self.scores:
             # 評価が行われていない場合、現在の引数で all_supervised を実行
@@ -197,8 +240,8 @@ class AnalyzeIris:
                 n_features = len(model.feature_importances_)
                 
                 # 特徴量名を調整
-                df_data = pd.DataFrame(self.X, columns=self.feature_names)
-                feature_names = df_data.columns[:n_features]
+                data_df = pd.DataFrame(self.X, columns=self.feature_names)
+                feature_names = data_df.columns[:n_features]
                 
                 # プロット
                 plt.barh(range(n_features), model.feature_importances_, align="center")
@@ -215,7 +258,7 @@ class AnalyzeIris:
                 export_graphviz(
                     model,
                     out_file=f"{model_name}.dot",
-                    feature_names=self.df_data_with_label.columns[:-1],
+                    feature_names=self.data_df_with_label.columns[:-1],
                     class_names=["setosa", "versicolor", "virginica"],
                     filled=True,
                     rounded=True,
@@ -233,7 +276,13 @@ class AnalyzeIris:
                         StandardScaler(), 
                         RobustScaler(), 
                         Normalizer()]
-
+        # self.scores_scaled = {}
+        # FIXME: 毎回irisデータをロードしているので、一度ロードしておいてそれを使うようにしましょう。コンストラクタでロードしたものは使わないのですか？
+        # FIXED: コンストラクタでロードしたものを使うように変更しました
+        
+        # iris = load_iris()
+        # X = iris.data
+        # y = iris.target
         
         kf = KFold(n_splits=n_splits, shuffle=True, random_state=random_state)
         
@@ -367,6 +416,9 @@ class AnalyzeIris:
                 df_nmf (DataFrame): nmfによる次元削減後のデータ
                 nmf_scaled (nmf): スケーリング後のnmfモデル
             """
+            # iris = load_iris()
+            # X = iris.data
+            # y = iris.target
 
             # スケーリング前のNMF
             nmf = NMF(n_components=n_components, init='random', random_state=0)
