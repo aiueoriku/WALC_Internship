@@ -85,7 +85,7 @@ class AnalyzeIris:
             ("RandomForestClassifier", RandomForestClassifier(random_state=self.random_state)),
             ("GradientBoostingClassifier", GradientBoostingClassifier(random_state=self.random_state)),
             ("MLPClassifier", MLPClassifier(random_state=self.random_state))
-        ]
+        ]# dictにしたほうがいい
 
     def get(self):
         """ラベル付のデータフレームを返す
@@ -114,7 +114,7 @@ class AnalyzeIris:
             sns.PairGrid: 作成したペアプロットオブジェクト
         """
         df_data_with_label_str = self.df_data_with_label.copy()
-        df_data_with_label_str["label"][df_data_with_label_str["label"] == 0] = "setosa"
+        df_data_with_label_str["label"][df_data_with_label_str["label"] == 0] = "setosa" # setosaベタ書きはあまりよくない
         df_data_with_label_str["label"][df_data_with_label_str["label"] == 1] = "versicolor"
         df_data_with_label_str["label"][df_data_with_label_str["label"] == 2] = "virginica"
         return sns.pairplot(df_data_with_label_str, hue="label", diag_kind=diag_kind)
@@ -165,6 +165,7 @@ class AnalyzeIris:
             pd.DataFrame: 教師あり学習モデルの評価結果
         """
 
+        # n_splitsなどはコンストラクタで指定しているのでここの変更処理はいらない
         if not self.scores:
             # 評価が行われていない場合、現在の引数で all_supervised を実行
             self.all_supervised(n_splits=self.n_splits, shuffle=self.shuffle, random_state=self.random_state)
@@ -253,6 +254,7 @@ class AnalyzeIris:
             ax = ax.ravel()  # 1次元配列に変換
 
             # オリジナルデータの散布図
+            # 5じゃなくてself.scalersの数プラス1でもいいかも
             for i, (x_idx, y_idx) in enumerate(plot_combinations):
                 ax[i * 5].scatter(X_train[:, x_idx], X_train[:, y_idx], c='blue', marker='o', label='Train')
                 ax[i * 5].scatter(X_test[:, x_idx], X_test[:, y_idx], c='red', marker='^', label='Test')
@@ -275,6 +277,7 @@ class AnalyzeIris:
                 print(f"{scaler.__class__.__name__}: test score: {test_score:.3f}   train score: {train_score:.3f}")
 
                 # 各スケーリング手法での散布図
+                # i,jなどの変数名をもう少しわかりやすくしたい
                 for i, (x_idx, y_idx) in enumerate(plot_combinations):
                     idx = i * 5 + (j + 1)
                     ax[i * 5 + (j + 1)].scatter(X_train_scaled[:, x_idx], X_train_scaled[:, y_idx], c='blue', marker='o', label='Train')
@@ -379,7 +382,7 @@ class AnalyzeIris:
         pca_scaled.fit(X_scaled)
         X_scaled_pca = pca_scaled.transform(X_scaled)
         
-        self._plot_dim_reduction(
+        self._plot_dim_reduction( # plot_two_dimensional_scatterとか関数名に変える
             X_trans=X_scaled_pca,
             model=pca_scaled,
             method_name="PCA (Scaled)",
@@ -552,6 +555,7 @@ class AnalyzeIris:
         self.dbscan_labels = clusters
 
         # Iris は品種が3種類 → クラスタ0,1,2 に割り当て、ノイズ(-1)も加える
+        # プロット綺麗になるようにパラメータ調整．無理ならなんで無理か考察
         cluster_colors = {
             0: 'red',
             1: 'green',
