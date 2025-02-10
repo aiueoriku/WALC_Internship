@@ -1,11 +1,11 @@
 import itertools
+
+import graphviz
 import matplotlib.pyplot as plt
+import mglearn
 import numpy as np
 import pandas as pd
 import seaborn as sns
-import graphviz
-import mglearn
-
 from scipy.cluster.hierarchy import dendrogram, fcluster, ward
 from sklearn.cluster import DBSCAN, KMeans
 from sklearn.datasets import load_iris
@@ -304,7 +304,7 @@ class AnalyzeIris:
         y: np.ndarray,
         target_names: list[str],
         component_names: list[str] = None
-    ):
+        ):
         """
         PCAやNMFなどの次元削減結果を描画
         
@@ -595,15 +595,3 @@ class AnalyzeIris:
         print("\n=== Adjusted Rand Index (ARI) ===")
         for method, ari in ari_results.items():
             print(f"{method}: {ari:.3f}")
-
-# データ分析の聞かれるポイント
-
-# 元データ見る。pairplot見てわかることは？
-# 練習問題2。一番いい結果は？なんで？どうしてこの手法が結果良かった？
-# best_supervisedは5つの結果の平均を返す。学習済みモデルを渡すには？
-# tsne, pca, nmfの結果を比較する.どれが一番いい？
-# スケールがどれがいい？
-# 思ったこと言ってよ
-# 目的は一番精度が高いIrisの分類モデルを見つけること
-# どの手法がいい？
-# コードかデータ分析の穴がある方突っ込まれる
