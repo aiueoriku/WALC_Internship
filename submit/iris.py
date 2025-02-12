@@ -164,16 +164,10 @@ class AnalyzeIris:
         Returns:
             pd.DataFrame: 教師あり学習モデルの評価結果
         """
-
-        # n_splitsなどはコンストラクタで指定しているのでここの変更処理はいらない
+        
+        # まだスコアが計算されていない場合は全てのモデルを評価
         if not self.scores:
-            # 評価が行われていない場合、現在の引数で all_supervised を実行
-            self.all_supervised(n_splits=self.n_splits, shuffle=self.shuffle, random_state=self.random_state)
-        else:
-            # 既にスコアがある場合、引数が異なるかを確認し、異なれば再実行
-            if self.n_splits != self.n_splits or self.shuffle != self.shuffle or self.random_state != self.random_state:
-                print("引数が変更されたため、再評価を行います。")
-                self.all_supervised(n_splits=self.n_splits, shuffle=self.shuffle, random_state=self.random_state)
+            self.all_supervised(n_neighbors=self.n_neighbors)
 
         df_results = pd.DataFrame(self.scores)
         return df_results
@@ -254,14 +248,14 @@ class AnalyzeIris:
             ax = ax.ravel()  # 1次元配列に変換
 
             # オリジナルデータの散布図
-            # 5じゃなくてself.scalersの数プラス1でもいいかも
+            num_plots = len(self.scalers) + 1  # オリジナルデータ + 各スケーリング手法
             for i, (x_idx, y_idx) in enumerate(plot_combinations):
-                ax[i * 5].scatter(X_train[:, x_idx], X_train[:, y_idx], c='blue', marker='o', label='Train')
-                ax[i * 5].scatter(X_test[:, x_idx], X_test[:, y_idx], c='red', marker='^', label='Test')
-                ax[i * 5].set_title(f"Original")
-                ax[i * 5].set_xlabel(feature_names[x_idx])
-                ax[i * 5].set_ylabel(feature_names[y_idx])
-                ax[i * 5].legend()
+                ax[i * num_plots].scatter(X_train[:, x_idx], X_train[:, y_idx], c='blue', marker='o', label='Train')
+                ax[i * num_plots].scatter(X_test[:, x_idx], X_test[:, y_idx], c='red', marker='^', label='Test')
+                ax[i * num_plots].set_title(f"Original")
+                ax[i * num_plots].set_xlabel(feature_names[x_idx])
+                ax[i * num_plots].set_ylabel(feature_names[y_idx])
+                ax[i * num_plots].legend()
 
             # 各スケーリング手法ごとのプロット
             for j, scaler in enumerate(self.scalers):
@@ -295,7 +289,7 @@ class AnalyzeIris:
             print("=" * 50)
 
 
-    def _plot_dim_reduction(
+    def plot_two_dimentional_scatter(
         self,
         X_trans: np.ndarray,
         model,  # PCA or NMF (anything that has .components_)
@@ -364,7 +358,7 @@ class AnalyzeIris:
         pca.fit(self.X)
         X_pca = pca.transform(self.X)
         
-        self._plot_dim_reduction(
+        self.plot_two_dimentional_scatter(
             X_trans=X_pca,
             model=pca,
             method_name="PCA (Original)",
@@ -382,7 +376,7 @@ class AnalyzeIris:
         pca_scaled.fit(X_scaled)
         X_scaled_pca = pca_scaled.transform(X_scaled)
         
-        self._plot_dim_reduction( # plot_two_dimensional_scatterとか関数名に変える
+        self.plot_two_dimentional_scatter(
             X_trans=X_scaled_pca,
             model=pca_scaled,
             method_name="PCA (Scaled)",
@@ -412,10 +406,10 @@ class AnalyzeIris:
 
             # スケーリング前のNMF
             nmf = NMF(n_components=n_components, init='random', random_state=self.random_state)
-            X_nmf = nmf.fit_transform(self.X)  # fitしてからtransformでも良いが fit_transformでOK
+            X_nmf = nmf.fit_transform(self.X) 
 
             # プロット
-            self._plot_dim_reduction(
+            self.plot_two_dimentional_scatter(
                 X_trans=X_nmf,
                 model=nmf,
                 method_name="NMF (Original)",
@@ -433,7 +427,7 @@ class AnalyzeIris:
             X_scaled_nmf = nmf_scaled.fit_transform(X_scaled - X_scaled.min())  # NMFは非負値のみ扱うため、最小値を調整
 
             # プロット
-            self._plot_dim_reduction(
+            self.plot_two_dimentional_scatter(
                 X_trans=X_scaled_nmf,
                 model=nmf_scaled,
                 method_name="NMF (Scaled)",
@@ -468,8 +462,7 @@ class AnalyzeIris:
         plt.ylabel("t-SNE feature 1")
         plt.ylim([X_tsne[:, 1].min() - 0.5, X_tsne[:, 1].max() + 0.5])
         plt.xlim([X_tsne[:, 0].min() - 0.5, X_tsne[:, 0].max() + 0.5])
-        
-        # print(self.y)
+
     
     def plot_k_means(self, n_clusters=3):
         """KMeans法によるクラスタリングを行い、クラスタごとにプロットする
@@ -524,7 +517,7 @@ class AnalyzeIris:
             p (int): truncate=True の場合に表示するクラスタの数 (デフォルト: 5)
         """
         
-        linkage_array = ward(self.X)  # Ward法によるクラスタリング
+        linkage_array = ward(self.X) 
 
         # クラスタラベルを取得（3個に分割）
         self.ward_labels = fcluster(linkage_array, t=3, criterion='maxclust')
@@ -551,7 +544,7 @@ class AnalyzeIris:
 
         # DBSCAN クラスタリング
         dbscan = DBSCAN(eps=eps, min_samples=min_samples)
-        clusters = dbscan.fit_predict(X_scaled) # 0, 1, -1
+        clusters = dbscan.fit_predict(X_scaled) 
         self.dbscan_labels = clusters
 
         # Iris は品種が3種類 → クラスタ0,1,2 に割り当て、ノイズ(-1)も加える
