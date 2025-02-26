@@ -114,9 +114,9 @@ class AnalyzeIris:
             sns.PairGrid: 作成したペアプロットオブジェクト
         """
         df_data_with_label_str = self.df_data_with_label.copy()
-        df_data_with_label_str["label"][df_data_with_label_str["label"] == 0] = "setosa" # setosaベタ書きはあまりよくない
-        df_data_with_label_str["label"][df_data_with_label_str["label"] == 1] = "versicolor"
-        df_data_with_label_str["label"][df_data_with_label_str["label"] == 2] = "virginica"
+        for i in range(len(self.target_names)):
+            df_data_with_label_str["label"][df_data_with_label_str["label"] == i] = self.target_names[i]
+
         return sns.pairplot(df_data_with_label_str, hue="label", diag_kind=diag_kind)
 
     def all_supervised(self, n_neighbors=None) -> None:
